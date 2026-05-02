@@ -3,19 +3,19 @@ import { Timer as TimerIcon } from 'lucide-react';
 
 interface TimerProps {
   startTime: number;
+  durationSeconds: number;
 }
 
-const Timer: React.FC<TimerProps> = ({ startTime }) => {
-  const DURATION = 2 * 60 * 60; // 2 hours in seconds
-  const [timeLeft, setTimeLeft] = useState(DURATION);
+const Timer: React.FC<TimerProps> = ({ startTime, durationSeconds }) => {
+  const [timeLeft, setTimeLeft] = useState(durationSeconds);
 
   useEffect(() => {
     const interval = setInterval(() => {
       const elapsed = Math.floor((Date.now() - startTime) / 1000);
-      setTimeLeft(Math.max(0, DURATION - elapsed));
+      setTimeLeft(Math.max(0, durationSeconds - elapsed));
     }, 1000);
     return () => clearInterval(interval);
-  }, [startTime]);
+  }, [startTime, durationSeconds]);
 
   const formatTime = (seconds: number) => {
     const mins = Math.floor(seconds / 60);

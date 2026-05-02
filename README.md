@@ -1,75 +1,52 @@
-# React + TypeScript + Vite
+# City Bingo
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+City Bingo is a real-world scavenger hunt application designed for groups and teams to explore their environment in a fun, interactive way. Teams compete to complete a 5x5 grid of challenges (like "Find a Blue Door" or "Statue Selfie") within a set time limit. The progress is tracked in real-time across all teams, creating an engaging and competitive urban adventure.
 
-Currently, two official plugins are available:
+## Features
+- **Real-time Leaderboard**: See other teams' progress as they complete challenges.
+- **Dynamic Bingo Grid**: Interactive flip-cards for each challenge.
+- **Configurable Games**: Support for multiple games with unique sets of challenges.
+- **Responsive Design**: Optimized for both mobile (on-the-go) and desktop.
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+## Supabase Integration & Setup
 
-## React Compiler
+This project uses Supabase as its backend to manage games, teams, and real-time progress.
 
-The React Compiler is enabled on this template. See [this documentation](https://react.dev/learn/react-compiler) for more information.
+### 1. Create a Supabase Project
+- Sign up or log in to [Supabase](https://supabase.com/).
+- Create a new project.
 
-Note: This will impact Vite dev & build performances.
+### 2. Database Setup
+- Open the **SQL Editor** in your Supabase dashboard.
+- Copy and paste the contents of `supabase_setup.sql` (found in this repository) into the SQL editor and run it.
+- This will create the necessary tables (`games`, `challenges`, `teams`, `team_progress`) and populate a sample game called "Downtown Explorer".
 
-## Expanding the ESLint configuration
+### 3. Enable Real-time
+To see the leaderboard updates instantly, you must enable real-time for the `team_progress` and `teams` tables:
+- Go to **Database** -> **Replication**.
+- Click on **'18 tables'** (or similar) under the `supabase_realtime` publication.
+- Toggle the switches to **ON** for `team_progress` and `teams`.
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
+### 4. Environment Variables
+- Create a `.env.local` file in the root directory.
+- Copy the contents from `.env.example` and replace the values with your Supabase credentials:
+  - `VITE_SUPABASE_URL`: Found in **Project Settings** -> **API**. Use the **Project URL** (e.g., `https://xyz.supabase.co`), NOT the API URL with `/rest/v1`.
+  - `VITE_SUPABASE_ANON_KEY`: Found in **Project Settings** -> **API** -> `anon` `public`.
 
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
+## Getting Started
 
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
+### Prerequisites
+- Node.js (Version 20.19+ or 22.12+)
+- npm
 
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+### Installation
+```bash
+npm install
 ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
-
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
-
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+### Development
+```bash
+npm run dev
 ```
+
+The app will be available at `http://localhost:5173`. By default, it loads the sample game "Downtown Explorer" included in the SQL setup.
