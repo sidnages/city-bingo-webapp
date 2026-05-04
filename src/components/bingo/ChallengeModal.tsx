@@ -103,7 +103,7 @@ const ChallengeModal: React.FC<ChallengeModalProps> = ({ challenge, onClose, onC
             {challenge.description}
           </p>
 
-          {!challenge.isCompleted && !challenge.isFreeSpace && (
+          {!challenge.isCompleted && !challenge.is_free_space && (
             <button
               onClick={() => onComplete(challenge.id)}
               style={{

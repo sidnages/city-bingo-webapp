@@ -11,12 +11,14 @@ export interface Challenge {
 export interface Team {
   id: string;
   game_id: string;
+  team_code: string;
   name: string;
   score: number; // Derived from count of team_progress
 }
 
 export interface Game {
   id: string;
+  game_code: string;
   name: string;
   duration_seconds: number;
   created_at: string;

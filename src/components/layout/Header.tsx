@@ -3,9 +3,10 @@ import { LogOut } from 'lucide-react';
 
 interface HeaderProps {
   teamName: string;
+  onSignOut?: () => void;
 }
 
-const Header: React.FC<HeaderProps> = ({ teamName }) => {
+const Header: React.FC<HeaderProps> = ({ teamName, onSignOut }) => {
   return (
     <header style={{
       display: 'flex',
@@ -23,17 +24,20 @@ const Header: React.FC<HeaderProps> = ({ teamName }) => {
         <span style={{ fontWeight: '600', color: 'var(--color-accent)' }}>
           {teamName}
         </span>
-        <button style={{
-          display: 'flex',
-          alignItems: 'center',
-          gap: '0.5rem',
-          padding: '0.5rem 1rem',
-          backgroundColor: 'var(--color-bg)',
-          color: 'var(--color-accent)',
-          borderRadius: 'var(--radius-md)',
-          fontWeight: '600',
-          transition: 'all 0.2s'
-        }}>
+        <button 
+          onClick={onSignOut}
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '0.5rem',
+            padding: '0.5rem 1rem',
+            backgroundColor: 'var(--color-bg)',
+            color: 'var(--color-accent)',
+            borderRadius: 'var(--radius-md)',
+            fontWeight: '600',
+            transition: 'all 0.2s'
+          }}
+        >
           <LogOut size={18} />
           Sign Out
         </button>
