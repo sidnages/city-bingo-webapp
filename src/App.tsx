@@ -6,7 +6,7 @@ import Timer from './components/sidebar/Timer';
 import Leaderboard from './components/sidebar/Leaderboard';
 import { Auth } from './components/auth/Auth';
 import { supabase } from './lib/supabase';
-import type { Challenge, Team, Game, Player } from './types/game';
+import type { Challenge, Team, Game } from './types/game';
 
 function App() {
   const [teamId, setTeamId] = useState<string | null>(localStorage.getItem('teamId'));
@@ -105,21 +105,43 @@ function App() {
     }
   }, [teamId]);
 
+  const handleStartRun = async () => {
+    if (!teamId) return;
+    try {
+      const { error } = await supabase
+        .from('teams')
+        .update({ started_at: new Date().toISOString() })
+        .eq('id', teamId);
+      
+      if (error) throw error;
+      // fetchData() will be triggered by real-time, but call it manually too for immediate feedback
+      await fetchData();
+    } catch (error: any) {
+      console.error('Error starting run:', error);
+      alert(`Failed to start run: ${error.message || 'Unknown error'}`);
+    }
+  };
+
   useEffect(() => {
     fetchData();
 
     if (teamId) {
-      const progressChannel = supabase
+      const channel = supabase
         .channel('schema-db-changes')
         .on(
           'postgres_changes',
           { event: '*', schema: 'public', table: 'team_progress' },
           () => fetchData()
         )
+        .on(
+          'postgres_changes',
+          { event: 'UPDATE', schema: 'public', table: 'teams' },
+          () => fetchData()
+        )
         .subscribe();
 
       return () => {
-        supabase.removeChannel(progressChannel);
+        supabase.removeChannel(channel);
       };
     }
   }, [teamId, fetchData]);
@@ -143,6 +165,10 @@ function App() {
   };
 
   const handleSquareClick = (challenge: Challenge) => {
+    if (!currentTeam?.started_at) {
+      alert('Please click "START RUN" to begin your game timer before completing challenges!');
+      return;
+    }
     if (challenge.isCompleted) return;
     setSelectedChallenge(challenge);
   };
@@ -276,10 +302,18 @@ function App() {
           position: isMobile ? 'static' : 'sticky',
           top: '2rem'
         }}>
-          {game && (
-            <Timer startTime={new Date(game.created_at).getTime()} durationSeconds={game.duration_seconds} />
+          {game && currentTeam && (
+            <Timer 
+              startedAt={currentTeam.started_at || null} 
+              durationSeconds={game.duration_seconds} 
+              onStart={handleStartRun}
+            />
           )}
-          <Leaderboard teams={teams} currentTeamId={teamId || ''} />
+          <Leaderboard 
+            teams={teams} 
+            currentTeamId={teamId || ''} 
+            gameDurationSeconds={game?.duration_seconds || 0}
+          />
           <button 
             onClick={handleSignOut}
             style={{

@@ -16,4 +16,6 @@ CREATE POLICY "Allow public update games" ON games FOR UPDATE USING (true);
 CREATE POLICY "Allow public insert challenges" ON challenges FOR INSERT WITH CHECK (true);
 
 -- Allow public delete to challenges (for re-inserting challenges during edit)
-CREATE POLICY "Allow public delete challenges" ON challenges FOR DELETE USING (true);
+-- 3. Add started_at to teams table for team-specific timing
+ALTER TABLE teams ADD COLUMN IF NOT EXISTS started_at TIMESTAMP WITH TIME ZONE;
+CREATE POLICY "Allow public update teams" ON teams FOR UPDATE USING (true) WITH CHECK (true);

@@ -14,6 +14,7 @@ export interface Team {
   team_code: string;
   name: string;
   score: number; // Derived from count of team_progress
+  started_at?: string;
 }
 
 export interface Game {
