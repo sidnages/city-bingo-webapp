@@ -1,10 +1,11 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import Header from './components/layout/Header';
 import BingoCard from './components/bingo/BingoCard';
 import ChallengeModal from './components/bingo/ChallengeModal';
 import Timer from './components/sidebar/Timer';
 import Leaderboard from './components/sidebar/Leaderboard';
 import { Auth } from './components/auth/Auth';
+import { BingoCelebration } from './components/bingo/BingoCelebration';
 import { supabase } from './lib/supabase';
 import type { Challenge, Team, Game } from './types/game';
 
@@ -18,6 +19,9 @@ function App() {
   const [isMobile, setIsMobile] = useState(window.innerWidth < 1024);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [showBingoEffect, setShowBingoEffect] = useState(false);
+  const [bingoCount, setBingoCount] = useState(0);
+  const isInitialLoad = useRef(true);
 
   // 1. Fetch Game and Team Data
   const fetchData = useCallback(async () => {
@@ -99,6 +103,34 @@ function App() {
         }));
         
         setChallenges(enrichedChallenges);
+
+        // Check for Bingo
+        const bingoPatterns = [
+          // Rows
+          [0, 1, 2, 3, 4], [5, 6, 7, 8, 9], [10, 11, 12, 13, 14], [15, 16, 17, 18, 19], [20, 21, 22, 23, 24],
+          // Columns
+          [0, 5, 10, 15, 20], [1, 6, 11, 16, 21], [2, 7, 12, 17, 22], [3, 8, 13, 18, 23], [4, 9, 14, 19, 24],
+          // Diagonals
+          [0, 6, 12, 18, 24], [4, 8, 12, 16, 20]
+        ];
+
+        let currentBingoCount = 0;
+        bingoPatterns.forEach(pattern => {
+          if (pattern.every(pos => enrichedChallenges[pos]?.isCompleted)) {
+            currentBingoCount++;
+          }
+        });
+
+        setBingoCount(prev => {
+          // Trigger celebration if bingo count increased and it's NOT the very first fetch of the session
+          if (currentBingoCount > prev && !isInitialLoad.current) {
+            setShowBingoEffect(true);
+          }
+          return currentBingoCount;
+        });
+
+        // Mark initial load as complete after the first check
+        isInitialLoad.current = false;
 
         const teamsWithScores = teamsData.map(t => ({
           ...t,
@@ -352,6 +384,11 @@ function App() {
         onComplete={handleCompleteChallenge}
         canComplete={canComplete}
         disabledReason={disabledReason}
+      />
+
+      <BingoCelebration 
+        show={showBingoEffect} 
+        onComplete={() => setShowBingoEffect(false)} 
       />
     </div>
   );
