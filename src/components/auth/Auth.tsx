@@ -1,17 +1,24 @@
 import React, { useState } from 'react';
 import { supabase } from '../../lib/supabase';
-import { Loader2, Trophy, Gamepad2, User } from 'lucide-react';
+import { Loader2, Trophy, Gamepad2, User, PlusCircle, Settings, Lock } from 'lucide-react';
+import { GameForm } from '../bingo/GameForm';
+import type { Game, Challenge } from '../../types/game';
 
 interface AuthProps {
   onLogin: (teamId: string) => void;
 }
 
+type AuthView = 'login' | 'signup' | 'create-game' | 'edit-auth' | 'edit-game';
+
 export const Auth: React.FC<AuthProps> = ({ onLogin }) => {
-  const [isSignUp, setIsSignUp] = useState(false);
+  const [view, setView] = useState<AuthView>('login');
   const [loading, setLoading] = useState(false);
   const [teamName, setTeamName] = useState('');
   const [gameCode, setGameCode] = useState('');
   const [teamCode, setTeamCode] = useState('');
+  const [adminPasscode, setAdminPasscode] = useState('');
+  const [editingGame, setEditingGame] = useState<Game | null>(null);
+  const [editingChallenges, setEditingChallenges] = useState<Challenge[]>([]);
   const [message, setMessage] = useState<{ type: 'success' | 'error' | 'info', text: string, code?: string } | null>(null);
 
   const handleAuth = async (e: React.FormEvent) => {
@@ -31,7 +38,7 @@ export const Auth: React.FC<AuthProps> = ({ onLogin }) => {
         throw new Error('Invalid Game ID. Please check and try again.');
       }
 
-      if (isSignUp) {
+      if (view === 'signup') {
         // 2. Check if team name already exists for this game
         const { data: existingTeam, error: checkError } = await supabase
           .from('teams')
@@ -62,7 +69,7 @@ export const Auth: React.FC<AuthProps> = ({ onLogin }) => {
 
         setMessage({ 
           type: 'success', 
-          text: 'Registration successful! PLEASE REMEMBER THIS ID. You will need it to log back in.',
+          text: 'Registration successful! Please REMEMBER this ID. You will need it to log back in.',
           code: newTeam.team_code 
         });
       } else {
@@ -85,6 +92,57 @@ export const Auth: React.FC<AuthProps> = ({ onLogin }) => {
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleEditAuth = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+    setMessage(null);
+
+    try {
+      const { data: game, error: gameError } = await supabase
+        .from('games')
+        .select('*')
+        .eq('game_code', gameCode.toUpperCase())
+        .single();
+
+      if (gameError || !game) {
+        throw new Error('Invalid Game ID.');
+      }
+
+      if (game.admin_passcode !== adminPasscode) {
+        throw new Error('Invalid Admin Passcode.');
+      }
+
+      // Fetch Challenges
+      const { data: challenges, error: challengesError } = await supabase
+        .from('challenges')
+        .select('*')
+        .eq('game_id', game.id)
+        .order('position', { ascending: true });
+
+      if (challengesError) throw challengesError;
+
+      setEditingGame(game);
+      setEditingChallenges(challenges);
+      setView('edit-game');
+    } catch (error: any) {
+      setMessage({ type: 'error', text: error.message || 'An error occurred.' });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleGameSuccess = (newGameCode: string) => {
+    setView('login');
+    setGameCode(newGameCode);
+    setMessage({
+      type: 'success',
+      text: `Game ${editingGame ? 'updated' : 'created'} successfully! REMEMBER YOUR GAME ID AND ADMIN PASSCODE.`,
+      code: newGameCode
+    });
+    setEditingGame(null);
+    setEditingChallenges([]);
   };
 
   const inputStyle = {
@@ -113,6 +171,21 @@ export const Auth: React.FC<AuthProps> = ({ onLogin }) => {
     zIndex: 10,
   };
 
+  if (view === 'create-game' || view === 'edit-game') {
+    return (
+      <GameForm 
+        existingGame={editingGame || undefined}
+        existingChallenges={editingChallenges.length > 0 ? editingChallenges : undefined}
+        onClose={() => {
+          setView('login');
+          setEditingGame(null);
+          setEditingChallenges([]);
+        }}
+        onSuccess={handleGameSuccess}
+      />
+    );
+  }
+
   return (
     <div style={{
       minHeight: '100vh',
@@ -137,16 +210,16 @@ export const Auth: React.FC<AuthProps> = ({ onLogin }) => {
             color: 'var(--color-secondary)',
             marginBottom: '0.5rem'
           }}>
-            {isSignUp ? 'Register Team' : 'Team Login'}
+            {view === 'signup' ? 'Register Team' : (view === 'edit-auth' ? 'Edit Game' : 'Team Login')}
           </h2>
           <p style={{ fontSize: '0.875rem', color: '#4B5563' }}>
-            {isSignUp 
+            {view === 'signup' 
               ? 'Enter a name to get your Team ID.' 
-              : 'Enter your Team ID to continue.'}
+              : (view === 'edit-auth' ? 'Enter Game ID and Admin Passcode' : 'Enter your credentials to continue.')}
           </p>
         </div>
 
-        <form style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }} onSubmit={handleAuth}>
+        <form style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }} onSubmit={view === 'edit-auth' ? handleEditAuth : handleAuth}>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
             <div style={{ position: 'relative' }}>
               <div style={iconContainerStyle}>
@@ -162,7 +235,24 @@ export const Auth: React.FC<AuthProps> = ({ onLogin }) => {
               />
             </div>
 
-            {!isSignUp ? (
+            {view === 'edit-auth' && (
+              <div style={{ position: 'relative' }}>
+                <div style={iconContainerStyle}>
+                  <Lock size={20} color="#9CA3AF" />
+                </div>
+                <input
+                  type="text"
+                  required
+                  maxLength={4}
+                  style={inputStyle}
+                  placeholder="Admin Passcode"
+                  value={adminPasscode}
+                  onChange={(e) => setAdminPasscode(e.target.value.replace(/\D/g, ''))}
+                />
+              </div>
+            )}
+
+            {view === 'login' && (
               <div style={{ position: 'relative' }}>
                 <div style={iconContainerStyle}>
                   <User size={20} color="#9CA3AF" />
@@ -176,7 +266,9 @@ export const Auth: React.FC<AuthProps> = ({ onLogin }) => {
                   onChange={(e) => setTeamCode(e.target.value)}
                 />
               </div>
-            ) : (
+            )}
+
+            {view === 'signup' && (
               <div style={{ position: 'relative' }}>
                 <div style={iconContainerStyle}>
                   <Trophy size={20} color="#9CA3AF" />
@@ -241,11 +333,11 @@ export const Auth: React.FC<AuthProps> = ({ onLogin }) => {
             {loading ? (
               <Loader2 className="animate-spin" size={20} />
             ) : (
-              isSignUp ? 'Get Team ID' : 'Login'
+              view === 'signup' ? 'Get Team ID' : (view === 'edit-auth' ? 'Verify & Edit' : 'Login')
             )}
           </button>
 
-          <div style={{ textAlign: 'center' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', alignItems: 'center' }}>
             <button
               type="button"
               style={{
@@ -255,12 +347,63 @@ export const Auth: React.FC<AuthProps> = ({ onLogin }) => {
                 backgroundColor: 'transparent'
               }}
               onClick={() => {
-                setIsSignUp(!isSignUp);
+                setView(view === 'login' ? 'signup' : 'login');
                 setMessage(null);
               }}
             >
-              {isSignUp ? 'Already registered? Login' : 'New game? Register your team'}
+              {view === 'login' ? 'New game? Register your team' : 'Already registered? Login'}
             </button>
+
+            <div style={{ 
+              width: '100%', 
+              height: '1px', 
+              backgroundColor: '#E5E7EB', 
+              margin: '0.5rem 0' 
+            }} />
+
+            <div style={{ display: 'flex', gap: '1rem', width: '100%' }}>
+              <button
+                type="button"
+                style={{
+                  flex: 1,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '0.5rem',
+                  padding: '0.5rem',
+                  fontSize: '0.75rem',
+                  color: '#4B5563',
+                  backgroundColor: '#F3F4F6',
+                  borderRadius: 'var(--radius-sm)',
+                  fontWeight: '600'
+                }}
+                onClick={() => setView('create-game')}
+              >
+                <PlusCircle size={16} />
+                Create Game
+              </button>
+
+              <button
+                type="button"
+                style={{
+                  flex: 1,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '0.5rem',
+                  padding: '0.5rem',
+                  fontSize: '0.75rem',
+                  color: '#4B5563',
+                  backgroundColor: '#F3F4F6',
+                  borderRadius: 'var(--radius-sm)',
+                  fontWeight: '600'
+                }}
+                onClick={() => setView('edit-auth')}
+              >
+                <Settings size={16} />
+                Edit Game
+              </button>
+            </div>
           </div>
         </form>
       </div>
