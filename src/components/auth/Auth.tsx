@@ -8,7 +8,7 @@ interface AuthProps {
   onLogin: (teamId: string) => void;
 }
 
-type AuthView = 'login' | 'signup' | 'create-game' | 'edit-auth' | 'edit-game';
+type AuthView = 'login' | 'signup' | 'create-game' | 'edit-auth' | 'edit-game' | 'game-success';
 
 export const Auth: React.FC<AuthProps> = ({ onLogin }) => {
   const [view, setView] = useState<AuthView>('login');
@@ -39,28 +39,29 @@ export const Auth: React.FC<AuthProps> = ({ onLogin }) => {
       }
 
       if (view === 'signup') {
-        // 2. Check if team name already exists for this game
+        const trimmedName = teamName.trim();
+        if (!trimmedName) throw new Error('Please enter a team name.');
+
+        // 2. Check if team name already exists for this game (case-insensitive)
         const { data: existingTeam, error: checkError } = await supabase
           .from('teams')
           .select('id')
           .eq('game_id', game.id)
-          .eq('name', teamName)
-          .single();
+          .ilike('name', trimmedName)
+          .maybeSingle();
 
         if (existingTeam) {
-          throw new Error(`A team named "${teamName}" already exists in this game. Please choose a different name.`);
+          throw new Error(`A team named "${trimmedName}" already exists in this game. Please choose a different name.`);
         }
 
-        if (checkError && checkError.code !== 'PGRST116') {
-          throw checkError;
-        }
+        if (checkError) throw checkError;
 
         // 3. Create Team
         const { data: newTeam, error: createError } = await supabase
           .from('teams')
           .insert({ 
             game_id: game.id, 
-            name: teamName 
+            name: trimmedName 
           })
           .select()
           .single();
@@ -134,11 +135,11 @@ export const Auth: React.FC<AuthProps> = ({ onLogin }) => {
   };
 
   const handleGameSuccess = (newGameCode: string) => {
-    setView('login');
+    setView('game-success');
     setGameCode(newGameCode);
     setMessage({
       type: 'success',
-      text: `Game ${editingGame ? 'updated' : 'created'} successfully! REMEMBER YOUR GAME ID AND ADMIN PASSCODE.`,
+      text: `Game ${editingGame ? 'updated' : 'created'} successfully! Please REMEMBER your Game ID and Admin Passcode.`,
       code: newGameCode
     });
     setEditingGame(null);
@@ -186,6 +187,10 @@ export const Auth: React.FC<AuthProps> = ({ onLogin }) => {
     );
   }
 
+  const isRegSuccess = view === 'signup' && message?.type === 'success';
+  const isGameSuccess = view === 'game-success';
+  const isAnySuccess = isRegSuccess || isGameSuccess;
+
   return (
     <div style={{
       minHeight: '100vh',
@@ -210,80 +215,86 @@ export const Auth: React.FC<AuthProps> = ({ onLogin }) => {
             color: 'var(--color-secondary)',
             marginBottom: '0.5rem'
           }}>
-            {view === 'signup' ? 'Register Team' : (view === 'edit-auth' ? 'Edit Game' : 'Bingo Login')}
+            {isGameSuccess ? 'Game Ready!' : (view === 'signup' ? 'Register Team' : (view === 'edit-auth' ? 'Edit Game' : 'Bingo Login'))}
           </h2>
           <p style={{ fontSize: '0.875rem', color: '#4B5563' }}>
-            {view === 'signup' 
-              ? 'Enter a name to get your Team ID.' 
-              : (view === 'edit-auth' ? 'Enter Game ID and Admin Passcode' : 'Login to an existing bingo game')}
+            {isRegSuccess 
+              ? 'Save your Team ID below and use it to login.' 
+              : (isGameSuccess 
+                  ? 'Your game is live! Share this Game ID with your players.'
+                  : (view === 'signup' 
+                      ? 'Enter a name to get your Team ID.' 
+                      : (view === 'edit-auth' ? 'Enter Game ID and Admin Passcode' : 'Login to an existing bingo game')))}
           </p>
         </div>
 
         <form style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }} onSubmit={view === 'edit-auth' ? handleEditAuth : handleAuth}>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-            <div style={{ position: 'relative' }}>
-              <div style={iconContainerStyle}>
-                <Gamepad2 size={20} color="#9CA3AF" />
-              </div>
-              <input
-                type="text"
-                required
-                style={{ ...inputStyle}}
-                placeholder="Game ID"
-                value={gameCode}
-                onChange={(e) => setGameCode(e.target.value)}
-              />
-            </div>
-
-            {view === 'edit-auth' && (
+          {!isAnySuccess && (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
               <div style={{ position: 'relative' }}>
                 <div style={iconContainerStyle}>
-                  <Lock size={20} color="#9CA3AF" />
-                </div>
-                <input
-                  type="text"
-                  required
-                  maxLength={4}
-                  style={inputStyle}
-                  placeholder="Admin Passcode"
-                  value={adminPasscode}
-                  onChange={(e) => setAdminPasscode(e.target.value.replace(/\D/g, ''))}
-                />
-              </div>
-            )}
-
-            {view === 'login' && (
-              <div style={{ position: 'relative' }}>
-                <div style={iconContainerStyle}>
-                  <User size={20} color="#9CA3AF" />
+                  <Gamepad2 size={20} color="#9CA3AF" />
                 </div>
                 <input
                   type="text"
                   required
                   style={{ ...inputStyle}}
-                  placeholder="Team ID"
-                  value={teamCode}
-                  onChange={(e) => setTeamCode(e.target.value)}
+                  placeholder="Game ID"
+                  value={gameCode}
+                  onChange={(e) => setGameCode(e.target.value)}
                 />
               </div>
-            )}
 
-            {view === 'signup' && (
-              <div style={{ position: 'relative' }}>
-                <div style={iconContainerStyle}>
-                  <Trophy size={20} color="#9CA3AF" />
+              {view === 'edit-auth' && (
+                <div style={{ position: 'relative' }}>
+                  <div style={iconContainerStyle}>
+                    <Lock size={20} color="#9CA3AF" />
+                  </div>
+                  <input
+                    type="text"
+                    required
+                    maxLength={4}
+                    style={inputStyle}
+                    placeholder="Admin Passcode"
+                    value={adminPasscode}
+                    onChange={(e) => setAdminPasscode(e.target.value.replace(/\D/g, ''))}
+                  />
                 </div>
-                <input
-                  type="text"
-                  required
-                  style={inputStyle}
-                  placeholder="Team Name"
-                  value={teamName}
-                  onChange={(e) => setTeamName(e.target.value)}
-                />
-              </div>
-            )}
-          </div>
+              )}
+
+              {view === 'login' && (
+                <div style={{ position: 'relative' }}>
+                  <div style={iconContainerStyle}>
+                    <User size={20} color="#9CA3AF" />
+                  </div>
+                  <input
+                    type="text"
+                    required
+                    style={{ ...inputStyle}}
+                    placeholder="Team ID"
+                    value={teamCode}
+                    onChange={(e) => setTeamCode(e.target.value)}
+                  />
+                </div>
+              )}
+
+              {view === 'signup' && (
+                <div style={{ position: 'relative' }}>
+                  <div style={iconContainerStyle}>
+                    <Trophy size={20} color="#9CA3AF" />
+                  </div>
+                  <input
+                    type="text"
+                    required
+                    style={inputStyle}
+                    placeholder="Team Name"
+                    value={teamName}
+                    onChange={(e) => setTeamName(e.target.value)}
+                  />
+                </div>
+              )}
+            </div>
+          )}
 
           {message && (
             <div style={{
@@ -313,97 +324,128 @@ export const Auth: React.FC<AuthProps> = ({ onLogin }) => {
             </div>
           )}
 
-          <button
-            type="submit"
-            disabled={loading}
-            style={{
-              width: '100%',
-              display: 'flex',
-              justifyContent: 'center',
-              padding: '0.75rem',
-              borderRadius: 'var(--radius-sm)',
-              backgroundColor: 'var(--color-primary)',
-              color: 'var(--color-white)',
-              fontSize: '0.875rem',
-              fontWeight: '600',
-              transition: 'opacity 0.2s',
-              opacity: loading ? 0.5 : 1
-            }}
-          >
-            {loading ? (
-              <Loader2 className="animate-spin" size={20} />
-            ) : (
-              view === 'signup' ? 'Get Team ID' : (view === 'edit-auth' ? 'Verify & Edit' : 'Login')
-            )}
-          </button>
-
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', alignItems: 'center' }}>
+          {isAnySuccess ? (
             <button
               type="button"
-              style={{
-                fontSize: '0.875rem',
-                color: 'var(--color-accent)',
-                fontWeight: '500',
-                backgroundColor: 'transparent'
-              }}
               onClick={() => {
-                setView(view === 'login' ? 'signup' : 'login');
+                setView('login');
                 setMessage(null);
+                setTeamName('');
+                setAdminPasscode('');
+              }}
+              style={{
+                width: '100%',
+                display: 'flex',
+                justifyContent: 'center',
+                padding: '0.75rem',
+                borderRadius: 'var(--radius-sm)',
+                backgroundColor: 'var(--color-secondary)',
+                color: 'var(--color-white)',
+                fontSize: '0.875rem',
+                fontWeight: '600',
               }}
             >
-              {view === 'login' ? 'New to the game? Register your team' : 'Return to game login'}
+              Back to Login
             </button>
+          ) : (
+            <button
+              type="submit"
+              disabled={loading}
+              style={{
+                width: '100%',
+                display: 'flex',
+                justifyContent: 'center',
+                padding: '0.75rem',
+                borderRadius: 'var(--radius-sm)',
+                backgroundColor: 'var(--color-primary)',
+                color: 'var(--color-white)',
+                fontSize: '0.875rem',
+                fontWeight: '600',
+                transition: 'opacity 0.2s',
+                opacity: loading ? 0.5 : 1
+              }}
+            >
+              {loading ? (
+                <Loader2 className="animate-spin" size={20} />
+              ) : (
+                view === 'signup' ? 'Get Team ID' : (view === 'edit-auth' ? 'Verify & Edit' : 'Login')
+              )}
+            </button>
+          )}
 
-            <div style={{ 
-              width: '100%', 
-              height: '1px', 
-              backgroundColor: '#E5E7EB', 
-              margin: '0.5rem 0' 
-            }} />
-
-            <div style={{ display: 'flex', gap: '1rem', width: '100%' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', alignItems: 'center' }}>
+            {!isAnySuccess && (
               <button
                 type="button"
                 style={{
-                  flex: 1,
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  gap: '0.5rem',
-                  padding: '0.5rem',
-                  fontSize: '0.75rem',
-                  color: '#4B5563',
-                  backgroundColor: '#F3F4F6',
-                  borderRadius: 'var(--radius-sm)',
-                  fontWeight: '600'
+                  fontSize: '0.875rem',
+                  color: 'var(--color-accent)',
+                  fontWeight: '500',
+                  backgroundColor: 'transparent'
                 }}
-                onClick={() => setView('create-game')}
+                onClick={() => {
+                  setView(view === 'login' ? 'signup' : 'login');
+                  setMessage(null);
+                }}
               >
-                <PlusCircle size={16} />
-                Create Game
+                {view === 'login' ? 'New to the game? Register your team' : 'Return to game login'}
               </button>
+            )}
 
-              <button
-                type="button"
-                style={{
-                  flex: 1,
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  gap: '0.5rem',
-                  padding: '0.5rem',
-                  fontSize: '0.75rem',
-                  color: '#4B5563',
-                  backgroundColor: '#F3F4F6',
-                  borderRadius: 'var(--radius-sm)',
-                  fontWeight: '600'
-                }}
-                onClick={() => setView('edit-auth')}
-              >
-                <Settings size={16} />
-                Edit Game
-              </button>
-            </div>
+            {!isAnySuccess && (
+              <>
+                <div style={{ 
+                  width: '100%', 
+                  height: '1px', 
+                  backgroundColor: '#E5E7EB', 
+                  margin: '0.5rem 0' 
+                }} />
+
+                <div style={{ display: 'flex', gap: '1rem', width: '100%' }}>
+                  <button
+                    type="button"
+                    style={{
+                      flex: 1,
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: '0.5rem',
+                      padding: '0.5rem',
+                      fontSize: '0.75rem',
+                      color: '#4B5563',
+                      backgroundColor: '#F3F4F6',
+                      borderRadius: 'var(--radius-sm)',
+                      fontWeight: '600'
+                    }}
+                    onClick={() => setView('create-game')}
+                  >
+                    <PlusCircle size={16} />
+                    Create Game
+                  </button>
+
+                  <button
+                    type="button"
+                    style={{
+                      flex: 1,
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: '0.5rem',
+                      padding: '0.5rem',
+                      fontSize: '0.75rem',
+                      color: '#4B5563',
+                      backgroundColor: '#F3F4F6',
+                      borderRadius: 'var(--radius-sm)',
+                      fontWeight: '600'
+                    }}
+                    onClick={() => setView('edit-auth')}
+                  >
+                    <Settings size={16} />
+                    Edit Game
+                  </button>
+                </div>
+              </>
+            )}
           </div>
         </form>
       </div>

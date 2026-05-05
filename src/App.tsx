@@ -206,7 +206,6 @@ function App() {
   };
 
   const handleSquareClick = (challenge: Challenge) => {
-    if (challenge.isCompleted) return;
     setSelectedChallenge(challenge);
   };
 
