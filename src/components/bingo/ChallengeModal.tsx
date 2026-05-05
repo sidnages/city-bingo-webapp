@@ -1,15 +1,17 @@
 import React from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Check } from 'lucide-react';
+import { X, Check, Lock, AlertCircle } from 'lucide-react';
 import type { Challenge } from '../../types/game';
 
 interface ChallengeModalProps {
   challenge: Challenge | null;
   onClose: () => void;
   onComplete: (id: string) => void;
+  canComplete: boolean;
+  disabledReason?: string;
 }
 
-const ChallengeModal: React.FC<ChallengeModalProps> = ({ challenge, onClose, onComplete }) => {
+const ChallengeModal: React.FC<ChallengeModalProps> = ({ challenge, onClose, onComplete, canComplete, disabledReason }) => {
   if (!challenge) return null;
 
   return (
@@ -70,7 +72,10 @@ const ChallengeModal: React.FC<ChallengeModalProps> = ({ challenge, onClose, onC
               padding: '0.5rem',
               borderRadius: '50%',
               backgroundColor: 'var(--color-bg)',
-              color: 'var(--color-accent)'
+              color: 'var(--color-accent)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center'
             }}
           >
             <X size={20} />
@@ -104,28 +109,49 @@ const ChallengeModal: React.FC<ChallengeModalProps> = ({ challenge, onClose, onC
           </p>
 
           {!challenge.isCompleted && !challenge.is_free_space && (
-            <button
-              onClick={() => onComplete(challenge.id)}
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                gap: '0.75rem',
-                backgroundColor: 'var(--color-primary)',
-                color: 'var(--color-white)',
-                padding: '1rem',
-                borderRadius: 'var(--radius-md)',
-                fontSize: '1.1rem',
-                fontWeight: 'bold',
-                marginTop: '1rem',
-                transition: 'transform 0.1s'
-              }}
-              onMouseDown={(e) => e.currentTarget.style.transform = 'scale(0.95)'}
-              onMouseUp={(e) => e.currentTarget.style.transform = 'scale(1)'}
-            >
-              <Check size={24} strokeWidth={3} />
-              Mark as Complete
-            </button>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+              <button
+                disabled={!canComplete}
+                onClick={() => onComplete(challenge.id)}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '0.75rem',
+                  backgroundColor: canComplete ? 'var(--color-primary)' : '#D1D5DB',
+                  color: 'var(--color-white)',
+                  padding: '1rem',
+                  borderRadius: 'var(--radius-md)',
+                  fontSize: '1.1rem',
+                  fontWeight: 'bold',
+                  marginTop: '1rem',
+                  transition: 'all 0.2s',
+                  cursor: canComplete ? 'pointer' : 'not-allowed',
+                  transform: 'none'
+                }}
+              >
+                {canComplete ? <Check size={24} strokeWidth={3} /> : <Lock size={20} />}
+                Mark as Complete
+              </button>
+              
+              {!canComplete && disabledReason && (
+                <div style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.5rem',
+                  color: '#991B1B',
+                  backgroundColor: '#FEF2F2',
+                  padding: '0.75rem',
+                  borderRadius: 'var(--radius-sm)',
+                  fontSize: '0.85rem',
+                  fontWeight: '500',
+                  border: '1px solid #FECACA'
+                }}>
+                  <AlertCircle size={16} />
+                  {disabledReason}
+                </div>
+              )}
+            </div>
           )}
 
           {challenge.isCompleted && (

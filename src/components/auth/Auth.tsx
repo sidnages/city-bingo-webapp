@@ -215,7 +215,7 @@ export const Auth: React.FC<AuthProps> = ({ onLogin }) => {
           <p style={{ fontSize: '0.875rem', color: '#4B5563' }}>
             {view === 'signup' 
               ? 'Enter a name to get your Team ID.' 
-              : (view === 'edit-auth' ? 'Enter Game ID and Admin Passcode' : 'Enter your credentials to continue.')}
+              : (view === 'edit-auth' ? 'Enter Game ID and Admin Passcode' : 'Login to an existing bingo game')}
           </p>
         </div>
 
@@ -351,7 +351,7 @@ export const Auth: React.FC<AuthProps> = ({ onLogin }) => {
                 setMessage(null);
               }}
             >
-              {view === 'login' ? 'New game? Register your team' : 'Already registered? Login'}
+              {view === 'login' ? 'New to the game? Register your team' : 'Return to game login'}
             </button>
 
             <div style={{ 

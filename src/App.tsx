@@ -83,8 +83,17 @@ function App() {
       if (progressError) throw progressError;
 
       if (challengesData && teamsData && progressData) {
+        // Ensure unique positions (safety check against DB duplication)
+        const uniqueChallengesMap = new Map();
+        challengesData.forEach(c => {
+          if (!uniqueChallengesMap.has(c.position)) {
+            uniqueChallengesMap.set(c.position, c);
+          }
+        });
+        const filteredChallenges = Array.from(uniqueChallengesMap.values());
+
         const myProgress = progressData.filter((p: any) => p.team_id === teamId);
-        const enrichedChallenges = challengesData.map(c => ({
+        const enrichedChallenges = filteredChallenges.map(c => ({
           ...c,
           isCompleted: myProgress.some((p: any) => p.challenge_id === c.id) || c.is_free_space
         }));
@@ -165,13 +174,33 @@ function App() {
   };
 
   const handleSquareClick = (challenge: Challenge) => {
-    if (!currentTeam?.started_at) {
-      alert('Please click "START RUN" to begin your game timer before completing challenges!');
-      return;
-    }
     if (challenge.isCompleted) return;
     setSelectedChallenge(challenge);
   };
+
+  const getCompletionStatus = () => {
+    if (!currentTeam?.started_at) {
+      return { 
+        canComplete: false, 
+        disabledReason: 'Your run has not started yet.' 
+      };
+    }
+
+    const startTime = new Date(currentTeam.started_at).getTime();
+    const elapsed = Math.floor((Date.now() - startTime) / 1000);
+    const isTimeUp = elapsed >= (game?.duration_seconds || 0);
+
+    if (isTimeUp) {
+      return { 
+        canComplete: false, 
+        disabledReason: "Time's up! Your run has completed." 
+      };
+    }
+
+    return { canComplete: true };
+  };
+
+  const { canComplete, disabledReason } = getCompletionStatus();
 
   const handleCompleteChallenge = async (id: string) => {
     if (!teamId) return;
@@ -321,6 +350,8 @@ function App() {
         challenge={selectedChallenge}
         onClose={() => setSelectedChallenge(null)}
         onComplete={handleCompleteChallenge}
+        canComplete={canComplete}
+        disabledReason={disabledReason}
       />
     </div>
   );
