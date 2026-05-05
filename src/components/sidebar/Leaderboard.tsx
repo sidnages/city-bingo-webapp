@@ -61,7 +61,14 @@ const Leaderboard: React.FC<LeaderboardProps> = ({ teams, currentTeamId, gameDur
         <h2>Leaderboard</h2>
       </div>
 
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+      <div style={{ 
+        display: 'flex', 
+        flexDirection: 'column', 
+        gap: '0.75rem',
+        maxHeight: '400px',
+        overflowY: 'auto',
+        paddingRight: '4px'
+      }} className="custom-scrollbar">
         {sortedTeams.map((team, index) => {
           const status = getTeamStatus(team);
           return (

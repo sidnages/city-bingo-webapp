@@ -210,7 +210,7 @@ export const Auth: React.FC<AuthProps> = ({ onLogin }) => {
             color: 'var(--color-secondary)',
             marginBottom: '0.5rem'
           }}>
-            {view === 'signup' ? 'Register Team' : (view === 'edit-auth' ? 'Edit Game' : 'Team Login')}
+            {view === 'signup' ? 'Register Team' : (view === 'edit-auth' ? 'Edit Game' : 'Bingo Login')}
           </h2>
           <p style={{ fontSize: '0.875rem', color: '#4B5563' }}>
             {view === 'signup' 

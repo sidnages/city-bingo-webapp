@@ -314,21 +314,6 @@ function App() {
             currentTeamId={teamId || ''} 
             gameDurationSeconds={game?.duration_seconds || 0}
           />
-          <button 
-            onClick={handleSignOut}
-            style={{
-              marginTop: '1rem',
-              padding: '0.75rem',
-              backgroundColor: 'transparent',
-              color: 'var(--color-text)',
-              border: '2px solid var(--color-bg-dark)',
-              borderRadius: 'var(--radius-md)',
-              cursor: 'pointer',
-              opacity: 0.7
-            }}
-          >
-            Sign Out
-          </button>
         </aside>
       </main>
 
