@@ -19,6 +19,7 @@ export const Auth: React.FC<AuthProps> = ({ onLogin }) => {
   const [adminPasscode, setAdminPasscode] = useState('');
   const [editingGame, setEditingGame] = useState<Game | null>(null);
   const [editingChallenges, setEditingChallenges] = useState<Challenge[]>([]);
+  const [isReadOnly, setIsReadOnly] = useState(false);
   const [message, setMessage] = useState<{ type: 'success' | 'error' | 'info', text: string, code?: string } | null>(null);
 
   const handleAuth = async (e: React.FormEvent) => {
@@ -115,6 +116,18 @@ export const Auth: React.FC<AuthProps> = ({ onLogin }) => {
         throw new Error('Invalid Admin Passcode.');
       }
 
+      // Check if any team has started
+      const { data: teams, error: teamsError } = await supabase
+        .from('teams')
+        .select('started_at')
+        .eq('game_id', game.id)
+        .not('started_at', 'is', null);
+
+      if (teamsError) throw teamsError;
+      
+      const hasGameStarted = teams && teams.length > 0;
+      setIsReadOnly(hasGameStarted);
+
       // Fetch Challenges
       const { data: challenges, error: challengesError } = await supabase
         .from('challenges')
@@ -177,10 +190,12 @@ export const Auth: React.FC<AuthProps> = ({ onLogin }) => {
       <GameForm 
         existingGame={editingGame || undefined}
         existingChallenges={editingChallenges.length > 0 ? editingChallenges : undefined}
+        isReadOnly={isReadOnly}
         onClose={() => {
           setView('login');
           setEditingGame(null);
           setEditingChallenges([]);
+          setIsReadOnly(false);
         }}
         onSuccess={handleGameSuccess}
       />

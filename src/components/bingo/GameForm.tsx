@@ -1,16 +1,17 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../../lib/supabase';
-import { Loader2, Save, X, Info, Edit3 } from 'lucide-react';
+import { Loader2, Save, X, Info, Edit3, Lock } from 'lucide-react';
 import type { Game, Challenge } from '../../types/game';
 
 interface GameFormProps {
   existingGame?: Game;
   existingChallenges?: Challenge[];
+  isReadOnly?: boolean;
   onClose: () => void;
   onSuccess: (gameCode: string) => void;
 }
 
-export const GameForm: React.FC<GameFormProps> = ({ existingGame, existingChallenges, onClose, onSuccess }) => {
+export const GameForm: React.FC<GameFormProps> = ({ existingGame, existingChallenges, isReadOnly, onClose, onSuccess }) => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [gameName, setGameName] = useState(existingGame?.name || '');
@@ -39,6 +40,7 @@ export const GameForm: React.FC<GameFormProps> = ({ existingGame, existingChalle
   });
 
   useEffect(() => {
+    if (isReadOnly) return;
     setChallenges(prev => {
       const newChallenges = [...prev];
       if (hasFreeSpace) {
@@ -58,9 +60,10 @@ export const GameForm: React.FC<GameFormProps> = ({ existingGame, existingChalle
       }
       return newChallenges;
     });
-  }, [hasFreeSpace]);
+  }, [hasFreeSpace, isReadOnly]);
 
   const handleChallengeChange = (index: number, field: 'title' | 'description', value: string) => {
+    if (isReadOnly) return;
     const newChallenges = [...challenges];
     newChallenges[index] = { ...newChallenges[index], [field]: value };
     setChallenges(newChallenges);
@@ -68,6 +71,7 @@ export const GameForm: React.FC<GameFormProps> = ({ existingGame, existingChalle
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (isReadOnly) return;
     setLoading(true);
     setError(null);
 
@@ -150,6 +154,8 @@ export const GameForm: React.FC<GameFormProps> = ({ existingGame, existingChalle
     borderRadius: 'var(--radius-sm)',
     border: '1px solid #D1D5DB',
     fontSize: '0.875rem',
+    backgroundColor: isReadOnly ? '#F9FAFB' : 'white',
+    cursor: isReadOnly ? 'not-allowed' : 'text'
   };
 
   return (
@@ -184,16 +190,19 @@ export const GameForm: React.FC<GameFormProps> = ({ existingGame, existingChalle
           display: 'flex',
           justifyContent: 'space-between',
           alignItems: 'center',
-          backgroundColor: 'var(--color-primary)',
+          backgroundColor: isReadOnly ? '#4B5563' : 'var(--color-primary)',
           color: 'white'
         }}>
-          <div>
-            <h2 style={{ fontSize: '1.25rem', fontWeight: '800' }}>
-              {existingGame ? 'Edit Game' : 'Create New Game'}
-            </h2>
-            <p style={{ fontSize: '0.75rem', opacity: 0.9, marginTop: '2px' }}>
-              Configure your bingo board and game settings
-            </p>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+            {isReadOnly && <Lock size={20} />}
+            <div>
+              <h2 style={{ fontSize: '1.25rem', fontWeight: '800' }}>
+                {isReadOnly ? 'View Game (Locked)' : (existingGame ? 'Edit Game' : 'Create New Game')}
+              </h2>
+              <p style={{ fontSize: '0.75rem', opacity: 0.9, marginTop: '2px' }}>
+                {isReadOnly ? 'This game has started and cannot be modified' : 'Configure your bingo board and game settings'}
+              </p>
+            </div>
           </div>
           <button onClick={onClose} style={{ background: 'transparent', color: 'white', padding: '0.5rem', borderRadius: '50%' }}>
             <X size={24} />
@@ -202,6 +211,24 @@ export const GameForm: React.FC<GameFormProps> = ({ existingGame, existingChalle
 
         <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', overflow: 'hidden', height: '100%' }}>
           <div style={{ padding: '1.5rem', overflowY: 'auto', flex: 1, backgroundColor: 'var(--color-bg)' }}>
+            {isReadOnly && (
+              <div style={{
+                padding: '1rem',
+                backgroundColor: '#EFF6FF',
+                color: '#1E40AF',
+                borderRadius: 'var(--radius-sm)',
+                marginBottom: '1.5rem',
+                fontSize: '0.875rem',
+                border: '1px solid #BFDBFE',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.75rem'
+              }}>
+                <Info size={20} />
+                <p><strong>Game Locked:</strong> Teams have already started their runs. To prevent unfair advantages, game settings and challenges are now read-only.</p>
+              </div>
+            )}
+
             {error && (
               <div style={{
                 padding: '1rem',
@@ -224,13 +251,14 @@ export const GameForm: React.FC<GameFormProps> = ({ existingGame, existingChalle
               boxShadow: 'var(--shadow-sm)',
               marginBottom: '2rem'
             }}>
-              <h3 style={{ fontSize: '1rem', fontWeight: '800', marginBottom: '1.25rem', color: 'var(--color-secondary)' }}>Game Settings</h3>
+              <h3 style={{ fontSize: '1rem', fontWeight: '800', marginBottom: '1.25rem', color: isReadOnly ? '#4B5563' : 'var(--color-secondary)' }}>Game Settings</h3>
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1.5rem' }}>
                 <div>
                   <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '700', textTransform: 'uppercase', color: '#6B7280', marginBottom: '0.5rem' }}>Game Name</label>
                   <input
                     type="text"
                     required
+                    readOnly={isReadOnly}
                     style={inputStyle}
                     value={gameName}
                     onChange={(e) => setGameName(e.target.value)}
@@ -243,6 +271,7 @@ export const GameForm: React.FC<GameFormProps> = ({ existingGame, existingChalle
                     type="number"
                     required
                     min="1"
+                    readOnly={isReadOnly}
                     style={inputStyle}
                     value={durationMinutes}
                     onChange={(e) => setDurationMinutes(parseInt(e.target.value))}
@@ -254,6 +283,7 @@ export const GameForm: React.FC<GameFormProps> = ({ existingGame, existingChalle
                     type="text"
                     required
                     maxLength={4}
+                    readOnly={isReadOnly}
                     style={inputStyle}
                     value={adminPasscode}
                     onChange={(e) => setAdminPasscode(e.target.value.replace(/\D/g, ''))}
@@ -266,6 +296,7 @@ export const GameForm: React.FC<GameFormProps> = ({ existingGame, existingChalle
                 <input
                   type="checkbox"
                   id="hasFreeSpace"
+                  disabled={isReadOnly}
                   style={{ width: '1.2rem', height: '1.2rem', accentColor: 'var(--color-primary)' }}
                   checked={hasFreeSpace}
                   onChange={(e) => setHasFreeSpace(e.target.checked)}
@@ -277,8 +308,10 @@ export const GameForm: React.FC<GameFormProps> = ({ existingGame, existingChalle
             </div>
 
             <div style={{ textAlign: 'center', marginBottom: '1.5rem' }}>
-              <h3 style={{ fontSize: '1rem', fontWeight: '800', color: 'var(--color-secondary)', marginBottom: '0.5rem' }}>The Bingo Board</h3>
-              <p style={{ fontSize: '0.875rem', color: '#6B7280' }}>Click any square to edit its challenge details.</p>
+              <h3 style={{ fontSize: '1rem', fontWeight: '800', color: isReadOnly ? '#4B5563' : 'var(--color-secondary)', marginBottom: '0.5rem' }}>The Bingo Board</h3>
+              <p style={{ fontSize: '0.875rem', color: '#6B7280' }}>
+                {isReadOnly ? 'Click any square to view its challenge details.' : 'Click any square to edit its challenge details.'}
+              </p>
             </div>
             
             <div style={{
@@ -320,7 +353,7 @@ export const GameForm: React.FC<GameFormProps> = ({ existingGame, existingChalle
                   className="card-square-preview"
                 >
                   {challenge.is_free_space ? (
-                    <span style={{ color: 'var(--color-primary)' }}>FREE</span>
+                    <span style={{ color: isReadOnly ? '#4B5563' : 'var(--color-primary)' }}>FREE</span>
                   ) : (
                     <>
                       <div style={{ 
@@ -341,7 +374,7 @@ export const GameForm: React.FC<GameFormProps> = ({ existingGame, existingChalle
                     right: '2px',
                     opacity: 0.3
                   }}>
-                    <Edit3 size={10} />
+                    {isReadOnly ? <Info size={10} /> : <Edit3 size={10} />}
                   </div>
                 </button>
               ))}
@@ -356,27 +389,30 @@ export const GameForm: React.FC<GameFormProps> = ({ existingGame, existingChalle
             gap: '1rem',
             backgroundColor: 'white'
           }}>
+            {!isReadOnly && (
+              <button
+                type="button"
+                onClick={onClose}
+                style={{
+                  padding: '0.75rem 1.5rem',
+                  borderRadius: 'var(--radius-md)',
+                  backgroundColor: 'transparent',
+                  color: '#6B7280',
+                  fontWeight: '700',
+                  border: '2px solid #E5E7EB'
+                }}
+              >
+                Discard
+              </button>
+            )}
             <button
-              type="button"
-              onClick={onClose}
-              style={{
-                padding: '0.75rem 1.5rem',
-                borderRadius: 'var(--radius-md)',
-                backgroundColor: 'transparent',
-                color: '#6B7280',
-                fontWeight: '700',
-                border: '2px solid #E5E7EB'
-              }}
-            >
-              Discard
-            </button>
-            <button
-              type="submit"
+              type={isReadOnly ? "button" : "submit"}
+              onClick={isReadOnly ? onClose : undefined}
               disabled={loading}
               style={{
                 padding: '0.75rem 2rem',
                 borderRadius: 'var(--radius-md)',
-                backgroundColor: 'var(--color-secondary)',
+                backgroundColor: isReadOnly ? '#4B5563' : 'var(--color-secondary)',
                 color: 'white',
                 fontWeight: '800',
                 display: 'flex',
@@ -385,8 +421,8 @@ export const GameForm: React.FC<GameFormProps> = ({ existingGame, existingChalle
                 boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)'
               }}
             >
-              {loading ? <Loader2 className="animate-spin" size={20} /> : <Save size={20} />}
-              {existingGame ? 'Save Changes' : 'Launch Game'}
+              {loading ? <Loader2 className="animate-spin" size={20} /> : (isReadOnly ? <X size={20} /> : <Save size={20} />)}
+              {isReadOnly ? 'Close View' : (existingGame ? 'Save Changes' : 'Launch Game')}
             </button>
           </div>
         </form>
@@ -414,7 +450,7 @@ export const GameForm: React.FC<GameFormProps> = ({ existingGame, existingChalle
               boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1)'
             }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
-                <h4 style={{ fontWeight: '800', color: 'var(--color-primary)' }}>
+                <h4 style={{ fontWeight: '800', color: isReadOnly ? '#4B5563' : 'var(--color-primary)' }}>
                   Square {editingChallengeIndex + 1} Challenge
                 </h4>
                 {challenges[editingChallengeIndex].is_free_space && <span style={{ fontSize: '0.7rem', backgroundColor: '#F3F4F6', padding: '2px 6px', borderRadius: '4px' }}>Free Space</span>}
@@ -426,8 +462,8 @@ export const GameForm: React.FC<GameFormProps> = ({ existingGame, existingChalle
                   <input
                     type="text"
                     required
-                    disabled={challenges[editingChallengeIndex].is_free_space}
-                    style={inputStyle}
+                    readOnly={isReadOnly || challenges[editingChallengeIndex].is_free_space}
+                    style={{...inputStyle, backgroundColor: (isReadOnly || challenges[editingChallengeIndex].is_free_space) ? '#F9FAFB' : 'white'}}
                     value={challenges[editingChallengeIndex].title}
                     onChange={(e) => handleChallengeChange(editingChallengeIndex, 'title', e.target.value)}
                     placeholder="Short & punchy title"
@@ -437,8 +473,8 @@ export const GameForm: React.FC<GameFormProps> = ({ existingGame, existingChalle
                 <div>
                   <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '700', color: '#6B7280', marginBottom: '0.4rem' }}>Description</label>
                   <textarea
-                    disabled={challenges[editingChallengeIndex].is_free_space}
-                    style={{ ...inputStyle, minHeight: '100px', resize: 'none' }}
+                    readOnly={isReadOnly || challenges[editingChallengeIndex].is_free_space}
+                    style={{ ...inputStyle, minHeight: '100px', resize: 'none', backgroundColor: (isReadOnly || challenges[editingChallengeIndex].is_free_space) ? '#F9FAFB' : 'white' }}
                     value={challenges[editingChallengeIndex].description}
                     onChange={(e) => handleChallengeChange(editingChallengeIndex, 'description', e.target.value)}
                     placeholder="Explain what the team needs to do..."
@@ -450,13 +486,13 @@ export const GameForm: React.FC<GameFormProps> = ({ existingGame, existingChalle
                   style={{
                     marginTop: '0.5rem',
                     padding: '0.75rem',
-                    backgroundColor: 'var(--color-primary)',
+                    backgroundColor: isReadOnly ? '#4B5563' : 'var(--color-primary)',
                     color: 'white',
                     borderRadius: 'var(--radius-md)',
                     fontWeight: '800'
                   }}
                 >
-                  Done
+                  {isReadOnly ? 'Close' : 'Done'}
                 </button>
               </div>
             </div>
