@@ -9,7 +9,6 @@ import { BingoCelebration } from './components/bingo/BingoCelebration';
 import { AdminDashboard } from './components/bingo/AdminDashboard';
 import ScoringModal from './components/bingo/ScoringModal';
 import { supabase } from './lib/supabase';
-import { Settings, Gamepad2, Info } from 'lucide-react';
 import { calculateTeamScore } from './lib/scoring';
 import type { Challenge, Team, Game } from './types/game';
 
@@ -28,7 +27,7 @@ function App() {
   const [error, setError] = useState<string | null>(null);
   const [showBingoEffect, setShowBingoEffect] = useState(false);
   const [showScoringModal, setShowScoringModal] = useState(false);
-  const [bingoCount, setBingoCount] = useState(0);
+  const [, setBingoCount] = useState(0);
   const isInitialLoad = useRef(true);
 
   // 1. Fetch Game and Team Data
@@ -143,7 +142,7 @@ function App() {
         const teamsWithData = teamsData.map(t => {
           const teamProgress = progressData.filter((p: any) => p.team_id === t.id);
           const squaresCompleted = teamProgress.length;
-          const calculatedScore = calculateTeamScore(t.id, progressData, filteredChallenges, teamsData.map(td => td.id), {
+          const calculatedScore = calculateTeamScore(t.id, progressData, filteredChallenges, {
             square: gameData.points_per_square,
             bingo: gameData.points_per_bingo,
             unique: gameData.points_per_unique

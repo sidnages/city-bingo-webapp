@@ -8,7 +8,6 @@ export const calculateTeamScore = (
   teamId: string,
   allProgress: any[], // TeamProgress[]
   allChallenges: any[], // Challenge[]
-  teamIds: string[],
   scoringParams: { square: number, bingo: number, unique: number }
 ) => {
   // Sort challenges by position to ensure 0-24 index alignment

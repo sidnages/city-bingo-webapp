@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Trophy, Timer as TimerIcon, Play, AlertCircle } from 'lucide-react';
+import { Trophy, Timer as TimerIcon } from 'lucide-react';
 import type { Team } from '../../types/game';
 
 interface LeaderboardProps {

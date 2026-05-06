@@ -9,7 +9,7 @@ interface AuthProps {
   onAdminLogin: (gameId: string) => void;
 }
 
-type AuthView = 'login' | 'signup' | 'create-game' | 'edit-auth' | 'edit-game' | 'game-success';
+type AuthView = 'login' | 'signup' | 'create-game' | 'edit-auth' | 'game-success';
 
 export const Auth: React.FC<AuthProps> = ({ onLogin, onAdminLogin }) => {
   const [view, setView] = useState<AuthView>('login');
@@ -140,7 +140,6 @@ export const Auth: React.FC<AuthProps> = ({ onLogin, onAdminLogin }) => {
       code: newGameCode
     });
     setEditingGame(null);
-    setAdminGame(null);
     setEditingChallenges([]);
   };
 
@@ -170,14 +169,14 @@ export const Auth: React.FC<AuthProps> = ({ onLogin, onAdminLogin }) => {
     zIndex: 10,
   };
 
-  if (view === 'create-game' || view === 'edit-game') {
+  if (view === 'create-game') {
     return (
       <GameForm 
         existingGame={editingGame || undefined}
         existingChallenges={editingChallenges.length > 0 ? editingChallenges : undefined}
         isReadOnly={isReadOnly}
         onClose={() => {
-          setView(editingGame ? 'admin-choice' : 'login');
+          setView('login');
           setEditingGame(null);
           setEditingChallenges([]);
           setIsReadOnly(false);

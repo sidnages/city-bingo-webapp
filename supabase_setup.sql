@@ -1,4 +1,8 @@
--- 0. Clean Up (Optional: Drop existing tables/functions for a fresh start)
+-- ==========================================
+-- CONSOLIDATED CITY BINGO SCHEMA
+-- ==========================================
+
+-- 0. Clean Up
 DROP TABLE IF EXISTS team_progress CASCADE;
 DROP TABLE IF EXISTS players CASCADE;
 DROP TABLE IF EXISTS teams CASCADE;
@@ -10,9 +14,16 @@ DROP TABLE IF EXISTS games CASCADE;
 -- Games table
 CREATE TABLE games (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    game_code TEXT UNIQUE NOT NULL DEFAULT upper(substring(md5(random()::text) from 1 for 6)), -- Random 6-char alphanumeric
+    game_code TEXT UNIQUE NOT NULL DEFAULT upper(substring(md5(random()::text) from 1 for 6)),
     name TEXT NOT NULL,
-    duration_seconds INTEGER NOT NULL DEFAULT 7200, -- Default 2 hours
+    duration_seconds INTEGER NOT NULL DEFAULT 7200,
+    admin_passcode TEXT,
+    points_per_square INTEGER NOT NULL DEFAULT 1,
+    points_per_bingo INTEGER NOT NULL DEFAULT 2,
+    points_per_unique INTEGER NOT NULL DEFAULT 2,
+    game_rules TEXT,
+    started_at TIMESTAMP WITH TIME ZONE,
+    stopped_at TIMESTAMP WITH TIME ZONE,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
@@ -31,10 +42,11 @@ CREATE TABLE challenges (
 CREATE TABLE teams (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     game_id UUID REFERENCES games(id) ON DELETE CASCADE,
-    team_code TEXT UNIQUE NOT NULL DEFAULT upper(substring(md5(random()::text) from 1 for 6)), -- Unique access code for the team
+    team_code TEXT UNIQUE NOT NULL DEFAULT upper(substring(md5(random()::text) from 1 for 6)),
     name TEXT NOT NULL,
+    started_at TIMESTAMP WITH TIME ZONE,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-    UNIQUE(game_id, name) -- Prevent duplicate team names in the same game
+    UNIQUE(game_id, name)
 );
 
 -- Team Progress table
@@ -47,19 +59,43 @@ CREATE TABLE team_progress (
 );
 
 -- 2. Enable Real-time
--- This automates enabling real-time for specific tables. 
--- Note: The publication 'supabase_realtime' must already exist (it's a Supabase default).
-
 BEGIN;
   ALTER PUBLICATION supabase_realtime ADD TABLE team_progress;
   ALTER PUBLICATION supabase_realtime ADD TABLE teams;
 COMMIT;
 
--- 3. Sample Data
+-- 3. Enable RLS and Add Policies
+ALTER TABLE games ENABLE ROW LEVEL SECURITY;
+ALTER TABLE challenges ENABLE ROW LEVEL SECURITY;
+ALTER TABLE teams ENABLE ROW LEVEL SECURITY;
+ALTER TABLE team_progress ENABLE ROW LEVEL SECURITY;
+
+-- Games Policies
+CREATE POLICY "Allow public read games" ON games FOR SELECT USING (true);
+CREATE POLICY "Allow public insert games" ON games FOR INSERT WITH CHECK (true);
+CREATE POLICY "Allow public update games" ON games FOR UPDATE USING (true);
+
+-- Challenges Policies
+CREATE POLICY "Allow public read challenges" ON challenges FOR SELECT USING (true);
+CREATE POLICY "Allow public insert challenges" ON challenges FOR INSERT WITH CHECK (true);
+CREATE POLICY "Allow public delete challenges" ON challenges FOR DELETE USING (true);
+
+-- Teams Policies
+CREATE POLICY "Allow public read teams" ON teams FOR SELECT USING (true);
+CREATE POLICY "Allow public insert teams" ON teams FOR INSERT WITH CHECK (true);
+CREATE POLICY "Allow public update teams" ON teams FOR UPDATE USING (true);
+CREATE POLICY "Allow public delete teams" ON teams FOR DELETE USING (true);
+
+-- Team Progress Policies
+CREATE POLICY "Allow public read team_progress" ON team_progress FOR SELECT USING (true);
+CREATE POLICY "Allow public insert team_progress" ON team_progress FOR INSERT WITH CHECK (true);
+CREATE POLICY "Allow public delete team_progress" ON team_progress FOR DELETE USING (true);
+
+-- 4. Sample Data (Optional)
 
 -- Create a game
-INSERT INTO games (id, game_code, name, duration_seconds) 
-VALUES ('d290f1ee-6c54-4b01-90e6-d701748f0851', 'CITY26', 'Downtown Explorer', 7200);
+INSERT INTO games (id, game_code, name, duration_seconds, admin_passcode) 
+VALUES ('d290f1ee-6c54-4b01-90e6-d701748f0851', 'CITY26', 'Downtown Explorer', 7200, '0000');
 
 -- Create challenges (25 for a 5x5 grid)
 INSERT INTO challenges (game_id, title, description, position, is_free_space) VALUES
@@ -94,16 +130,3 @@ INSERT INTO teams (id, game_id, team_code, name) VALUES
 ('4f7b6b1a-9f5b-4c1a-8e1a-5b6b1a9f5b4c', 'd290f1ee-6c54-4b01-90e6-d701748f0851', 'EXPLOR', 'The Explorers'),
 ('5a8c7c2b-0a6c-5d2b-9f2b-6c7c2b0a6c5d', 'd290f1ee-6c54-4b01-90e6-d701748f0851', 'RACERS', 'Urban Racers'),
 ('6b9d8d3c-1b7d-6e3c-0a3c-7d8d3c1b7d6e', 'd290f1ee-6c54-4b01-90e6-d701748f0851', 'SLEUTH', 'City Sleuths');
-
--- 4. Enable RLS and Add Policies (For Prototype)
-ALTER TABLE games ENABLE ROW LEVEL SECURITY;
-ALTER TABLE challenges ENABLE ROW LEVEL SECURITY;
-ALTER TABLE teams ENABLE ROW LEVEL SECURITY;
-ALTER TABLE team_progress ENABLE ROW LEVEL SECURITY;
-
-CREATE POLICY "Allow public read games" ON games FOR SELECT USING (true);
-CREATE POLICY "Allow public read challenges" ON challenges FOR SELECT USING (true);
-CREATE POLICY "Allow public read teams" ON teams FOR SELECT USING (true);
-CREATE POLICY "Allow public read team_progress" ON team_progress FOR SELECT USING (true);
-CREATE POLICY "Allow public insert team_progress" ON team_progress FOR INSERT WITH CHECK (true);
-CREATE POLICY "Allow public insert teams" ON teams FOR INSERT WITH CHECK (true);

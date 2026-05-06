@@ -3,7 +3,6 @@ import { calculateTeamScore } from '../../lib/scoring';
 import { supabase } from '../../lib/supabase';
 import { Users, Play, Square, CheckSquare, Loader2, X, Trophy, AlertTriangle, Eye, Settings, BookOpen } from 'lucide-react';
 import type { Game, Team, Challenge, TeamProgress } from '../../types/game';
-import BingoCard from './BingoCard';
 import { GameForm } from './GameForm';
 
 interface AdminDashboardProps {
@@ -62,7 +61,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ gameId, onSignOu
 
       const enrichedTeams = teamsData.map(t => ({
         ...t,
-        score: calculateTeamScore(t.id, progressData || [], challenges, teamsData.map(td => td.id), {
+        score: calculateTeamScore(t.id, progressData || [], challenges, {
           square: gameData.points_per_square,
           bingo: gameData.points_per_bingo,
           unique: gameData.points_per_unique
