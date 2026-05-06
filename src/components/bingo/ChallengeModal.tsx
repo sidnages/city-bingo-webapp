@@ -6,7 +6,7 @@ import type { Challenge } from '../../types/game';
 interface ChallengeModalProps {
   challenge: Challenge | null;
   onClose: () => void;
-  onComplete: (id: string) => void;
+  onComplete: (challenge: Challenge) => void;
   canComplete: boolean;
   disabledReason?: string;
 }
@@ -112,7 +112,7 @@ const ChallengeModal: React.FC<ChallengeModalProps> = ({ challenge, onClose, onC
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
               <button
                 disabled={!canComplete}
-                onClick={() => onComplete(challenge.id)}
+                onClick={() => onComplete(challenge)}
                 style={{
                   display: 'flex',
                   alignItems: 'center',
@@ -154,7 +154,32 @@ const ChallengeModal: React.FC<ChallengeModalProps> = ({ challenge, onClose, onC
             </div>
           )}
 
-          {challenge.isCompleted && (
+          {challenge.isCompleted && !challenge.is_free_space && (
+            <button
+              disabled={!canComplete}
+              onClick={() => onComplete(challenge)}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '0.75rem',
+                backgroundColor: 'var(--color-secondary)',
+                color: 'var(--color-white)',
+                padding: '1rem',
+                borderRadius: 'var(--radius-md)',
+                fontSize: '1.1rem',
+                fontWeight: 'bold',
+                marginTop: '1rem',
+                transition: 'all 0.2s',
+                cursor: canComplete ? 'pointer' : 'not-allowed'
+              }}
+            >
+              {canComplete ? <X size={24} /> : <Lock size={20} />}
+              Mark as Incomplete
+            </button>
+          )}
+
+          {challenge.isCompleted && challenge.is_free_space && (
             <div style={{
               display: 'flex',
               alignItems: 'center',
@@ -165,7 +190,7 @@ const ChallengeModal: React.FC<ChallengeModalProps> = ({ challenge, onClose, onC
               fontSize: '1.1rem'
             }}>
               <Check size={24} />
-              Completed!
+              Free Space!
             </div>
           )}
         </motion.div>

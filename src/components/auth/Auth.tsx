@@ -32,7 +32,7 @@ export const Auth: React.FC<AuthProps> = ({ onLogin, onAdminLogin }) => {
       // 1. Find the game
       const { data: game, error: gameError } = await supabase
         .from('games')
-        .select('id, stopped_at')
+        .select('id, stopped_at, started_at')
         .eq('game_code', gameCode.toUpperCase())
         .single();
 
@@ -43,6 +43,9 @@ export const Auth: React.FC<AuthProps> = ({ onLogin, onAdminLogin }) => {
       if (view === 'signup') {
         if (game.stopped_at) {
           throw new Error('This game has already ended. No more teams can be added.');
+        }
+        if (game.started_at) {
+          throw new Error('This game has already started. No more teams can join.');
         }
         const trimmedName = teamName.trim();
         if (!trimmedName) throw new Error('Please enter a team name.');

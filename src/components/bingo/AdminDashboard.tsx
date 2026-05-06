@@ -124,7 +124,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ gameId, onSignOu
   };
 
   const handleStopGame = async () => {
-    if (!window.confirm('Are you sure you want to STOP the game? This will mark all team runs as completed and prevent new registrations.')) return;
+    if (!window.confirm('Are you sure you want to STOP the game? This will mark all team runs as completed and allow you to make any modifications to team progress before publishing scores.')) return;
     setActionLoading(true);
     try {
       const { error } = await supabase
@@ -143,16 +143,45 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ gameId, onSignOu
     }
   };
 
+  const handleRemoveTeam = async (teamId: string) => {
+    if (!window.confirm('Are you sure you want to remove this team? This action cannot be undone.')) return;
+    setActionLoading(true);
+    try {
+      const { error } = await supabase
+        .from('teams')
+        .delete()
+        .eq('id', teamId);
+      if (error) throw error;
+      setSelectedTeam(null);
+      await fetchData();
+    } catch (error) {
+      console.error('Error removing team:', error);
+      alert('Failed to remove team.');
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
   const toggleChallenge = async (teamId: string, challengeId: string, isCompleted: boolean) => {
+    if (!game?.stopped_at) {
+      alert('You can only modify progress after the game has finished.');
+      return;
+    }
+
+    const action = isCompleted ? 'mark this challenge as incomplete' : 'mark this challenge as complete';
+    if (!window.confirm(`Are you sure you want to ${action}?`)) return;
+
     try {
       if (isCompleted) {
         // Uncomplete
-        const { error } = await supabase
-          .from('team_progress')
-          .delete()
-          .eq('team_id', teamId)
-          .eq('challenge_id', challengeId);
-        if (error) throw error;
+        const progress = allProgress.find(p => p.team_id === teamId && p.challenge_id === challengeId);
+        if (progress) {
+          const { error } = await supabase
+            .from('team_progress')
+            .delete()
+            .eq('id', progress.id);
+          if (error) throw error;
+        }
       } else {
         // Complete
         const { error } = await supabase
@@ -160,8 +189,12 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ gameId, onSignOu
           .insert([{ team_id: teamId, challenge_id: challengeId }]);
         if (error) throw error;
       }
-    } catch (error) {
+
+      // Refresh data to update UI
+      await fetchData();
+    } catch (error: any) {
       console.error('Error toggling challenge:', error);
+      alert(`Error toggling challenge: ${error.message || 'Unknown error'}`);
     }
   };
 
@@ -383,10 +416,14 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ gameId, onSignOu
             <div style={{ 
               display: 'grid', 
               gridTemplateColumns: 'repeat(5, 1fr)', 
-              gap: '0.5rem',
+              gap: '0.4rem',
               backgroundColor: 'var(--color-bg-dark)',
               padding: '0.5rem',
-              borderRadius: 'var(--radius-md)'
+              borderRadius: 'var(--radius-md)',
+              marginBottom: '1rem',
+              width: '100%',
+              maxWidth: '100%',
+              boxSizing: 'border-box'
             }}>
               {challenges.map(challenge => {
                 const isCompleted = allProgress.some(p => p.team_id === selectedTeam.id && p.challenge_id === challenge.id) || challenge.is_free_space;
@@ -400,7 +437,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ gameId, onSignOu
                       flexDirection: 'column',
                       alignItems: 'center',
                       justifyContent: 'center',
-                      padding: '0.25rem',
+                      padding: '0.2rem',
                       borderRadius: 'var(--radius-sm)',
                       backgroundColor: isCompleted ? 'var(--color-primary)' : 'white',
                       color: isCompleted ? 'white' : 'var(--color-text)',
@@ -410,23 +447,49 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ gameId, onSignOu
                       border: 'none',
                       cursor: challenge.is_free_space ? 'default' : 'pointer',
                       transition: 'all 0.2s',
-                      boxShadow: 'inset 0 0 0 1px rgba(0,0,0,0.05)'
+                      boxShadow: 'inset 0 0 0 1px rgba(0,0,0,0.05)',
+                      overflow: 'hidden'
                     }}
                   >
                     {challenge.is_free_space ? (
                       'FREE'
                     ) : (
                       <>
-                        <div style={{ overflow: 'hidden', textOverflow: 'ellipsis', display: '-webkit-box', WebkitLineClamp: 3, WebkitBoxOrient: 'vertical' }}>
+                        <div style={{ 
+                          width: '100%',
+                          wordBreak: 'break-word',
+                          display: '-webkit-box', 
+                          WebkitLineClamp: 3, 
+                          WebkitBoxOrient: 'vertical',
+                          overflow: 'hidden'
+                        }}>
                           {challenge.title}
                         </div>
-                        {isCompleted ? <CheckSquare size={12} style={{ marginTop: '2px' }} /> : <Square size={12} style={{ marginTop: '2px', opacity: 0.3 }} />}
+                        {isCompleted ? <CheckSquare size={12} style={{ marginTop: '2px', flexShrink: 0 }} /> : <Square size={12} style={{ marginTop: '2px', opacity: 0.3, flexShrink: 0 }} />}
                       </>
                     )}
                   </button>
                 );
               })}
             </div>
+
+            {!game?.started_at && (
+              <button
+                onClick={() => handleRemoveTeam(selectedTeam.id)}
+                style={{
+                  width: '100%',
+                  padding: '0.75rem',
+                  backgroundColor: '#FEE2E2',
+                  color: '#B91C1C',
+                  borderRadius: 'var(--radius-md)',
+                  fontWeight: 'bold',
+                  border: '1px solid #FECACA',
+                  marginTop: '0.5rem'
+                }}
+              >
+                Remove Team
+              </button>
+            )}
           </div>
         ) : (
           <div style={{ 

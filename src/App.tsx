@@ -247,20 +247,42 @@ function App() {
 
   const { canComplete, disabledReason } = getCompletionStatus();
 
-  const handleCompleteChallenge = async (id: string) => {
+  const handleCompleteChallenge = async (challenge: Challenge) => {
     if (!teamId) return;
     try {
-      const { error } = await supabase
-        .from('team_progress')
-        .insert([{
-          team_id: teamId,
-          challenge_id: id
-        }]);
+      if (challenge.isCompleted) {
+        // Uncomplete: find progress record
+        const { data: progress, error: fetchError } = await supabase
+          .from('team_progress')
+          .select('id')
+          .eq('team_id', teamId)
+          .eq('challenge_id', challenge.id)
+          .single();
+        
+        if (fetchError) throw fetchError;
+        
+        const { error: deleteError } = await supabase
+          .from('team_progress')
+          .delete()
+          .eq('id', progress.id);
+          
+        if (deleteError) throw deleteError;
+      } else {
+        // Complete
+        const { error } = await supabase
+          .from('team_progress')
+          .insert([{
+            team_id: teamId,
+            challenge_id: challenge.id
+          }]);
 
-      if (error) throw error;
+        if (error) throw error;
+      }
+
       setSelectedChallenge(null);
+      await fetchData(); // Refresh state
     } catch (error) {
-      console.error('Error completing challenge:', error);
+      console.error('Error toggling challenge:', error);
     }
   };
 
