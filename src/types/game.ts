@@ -27,6 +27,10 @@ export interface Game {
   started_at?: string;
   stopped_at?: string;
   published_at?: string;
+  points_per_square: number;
+  points_per_bingo: number;
+  points_per_unique: number;
+  game_rules?: string;
 }
 
 export interface TeamProgress {

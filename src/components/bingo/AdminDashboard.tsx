@@ -62,7 +62,11 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ gameId, onSignOu
 
       const enrichedTeams = teamsData.map(t => ({
         ...t,
-        score: calculateTeamScore(t.id, progressData || [], challenges, teamsData.map(td => td.id))
+        score: calculateTeamScore(t.id, progressData || [], challenges, teamsData.map(td => td.id), {
+          square: gameData.points_per_square,
+          bingo: gameData.points_per_bingo,
+          unique: gameData.points_per_unique
+        })
       }));
       setTeams(enrichedTeams);
 

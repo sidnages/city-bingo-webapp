@@ -16,6 +16,10 @@ export const GameForm: React.FC<GameFormProps> = ({ existingGame, existingChalle
   const [error, setError] = useState<string | null>(null);
   const [gameName, setGameName] = useState(existingGame?.name || '');
   const [durationMinutes, setDurationMinutes] = useState(existingGame ? Math.floor(existingGame.duration_seconds / 60) : 120);
+  const [gameRules, setGameRules] = useState(existingGame?.game_rules || '');
+  const [pointsPerSquare, setPointsPerSquare] = useState(existingGame?.points_per_square || 1);
+  const [pointsPerBingo, setPointsPerBingo] = useState(existingGame?.points_per_bingo || 2);
+  const [pointsPerUnique, setPointsPerUnique] = useState(existingGame?.points_per_unique || 2);
   const [adminPasscode, setAdminPasscode] = useState(existingGame?.admin_passcode || '');
   const [hasFreeSpace, setHasFreeSpace] = useState(existingChallenges ? existingChallenges.some(c => c.is_free_space) : true);
   const [editingChallengeIndex, setEditingChallengeIndex] = useState<number | null>(null);
@@ -101,7 +105,11 @@ export const GameForm: React.FC<GameFormProps> = ({ existingGame, existingChalle
           .update({
             name: gameName,
             duration_seconds: durationMinutes * 60,
-            admin_passcode: adminPasscode
+            admin_passcode: adminPasscode,
+            points_per_square: pointsPerSquare,
+            points_per_bingo: pointsPerBingo,
+            points_per_unique: pointsPerUnique,
+            game_rules: gameRules
           })
           .eq('id', existingGame.id);
 
@@ -119,7 +127,11 @@ export const GameForm: React.FC<GameFormProps> = ({ existingGame, existingChalle
           .insert({
             name: gameName,
             duration_seconds: durationMinutes * 60,
-            admin_passcode: adminPasscode
+            admin_passcode: adminPasscode,
+            points_per_square: pointsPerSquare,
+            points_per_bingo: pointsPerBingo,
+            points_per_unique: pointsPerUnique,
+            game_rules: gameRules
           })
           .select()
           .single();
@@ -292,6 +304,17 @@ export const GameForm: React.FC<GameFormProps> = ({ existingGame, existingChalle
                 </div>
               </div>
 
+              <div style={{ marginTop: '1.5rem' }}>
+                <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '700', textTransform: 'uppercase', color: '#6B7280', marginBottom: '0.5rem' }}>Game Rules (Optional)</label>
+                <textarea
+                  readOnly={isReadOnly}
+                  style={{ ...inputStyle, minHeight: '80px' }}
+                  value={gameRules}
+                  onChange={(e) => setGameRules(e.target.value)}
+                  placeholder="Additional rules or instructions for teams..."
+                />
+              </div>
+
               <div style={{ marginTop: '1.5rem', display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
                 <input
                   type="checkbox"
@@ -304,6 +327,54 @@ export const GameForm: React.FC<GameFormProps> = ({ existingGame, existingChalle
                 <label htmlFor="hasFreeSpace" style={{ fontSize: '0.875rem', fontWeight: '600', color: 'var(--color-text)' }}>
                   Include a FREE SPACE in the center (recommended)
                 </label>
+              </div>
+            </div>
+
+            <div style={{ 
+              backgroundColor: 'white', 
+              padding: '1.5rem', 
+              borderRadius: 'var(--radius-md)', 
+              boxShadow: 'var(--shadow-sm)',
+              marginBottom: '2rem'
+            }}>
+              <h3 style={{ fontSize: '1rem', fontWeight: '800', marginBottom: '1.25rem', color: isReadOnly ? '#4B5563' : 'var(--color-secondary)' }}>Scoring Settings</h3>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: '1.5rem' }}>
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '700', textTransform: 'uppercase', color: '#6B7280', marginBottom: '0.5rem' }}>Pts/Square</label>
+                  <input
+                    type="number"
+                    required
+                    min="0"
+                    readOnly={isReadOnly}
+                    style={inputStyle}
+                    value={pointsPerSquare}
+                    onChange={(e) => setPointsPerSquare(parseInt(e.target.value))}
+                  />
+                </div>
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '700', textTransform: 'uppercase', color: '#6B7280', marginBottom: '0.5rem' }}>Pts/Bingo</label>
+                  <input
+                    type="number"
+                    required
+                    min="0"
+                    readOnly={isReadOnly}
+                    style={inputStyle}
+                    value={pointsPerBingo}
+                    onChange={(e) => setPointsPerBingo(parseInt(e.target.value))}
+                  />
+                </div>
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '700', textTransform: 'uppercase', color: '#6B7280', marginBottom: '0.5rem' }}>Pts/Unique</label>
+                  <input
+                    type="number"
+                    required
+                    min="0"
+                    readOnly={isReadOnly}
+                    style={inputStyle}
+                    value={pointsPerUnique}
+                    onChange={(e) => setPointsPerUnique(parseInt(e.target.value))}
+                  />
+                </div>
               </div>
             </div>
 

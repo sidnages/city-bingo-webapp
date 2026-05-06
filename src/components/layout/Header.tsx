@@ -1,13 +1,14 @@
 import React from 'react';
-import { LogOut } from 'lucide-react';
+import { LogOut, Info } from 'lucide-react';
 
 interface HeaderProps {
   teamName: string;
   onSignOut?: () => void;
+  onShowRules?: () => void;
   children?: React.ReactNode;
 }
 
-const Header: React.FC<HeaderProps> = ({ teamName, onSignOut, children }) => {
+const Header: React.FC<HeaderProps> = ({ teamName, onSignOut, onShowRules, children }) => {
   return (
     <header style={{
       display: 'flex',
@@ -19,8 +20,8 @@ const Header: React.FC<HeaderProps> = ({ teamName, onSignOut, children }) => {
       marginBottom: '2rem',
       flexWrap: 'wrap',
       gap: '1rem'
-    }} className="fun-shadow">
-      <h1 style={{ color: 'var(--color-secondary)', fontSize: '1.5rem', fontWeight: 'bold' }}>
+    }} className="fun-shadow header-container">
+      <h1 className="header-title" style={{ color: 'var(--color-secondary)', fontSize: '1.5rem', fontWeight: 'bold' }}>
         City Bingo
       </h1>
       <div style={{ display: 'flex', alignItems: 'center', gap: '1.5rem', flex: 1, justifyContent: 'flex-end' }}>
@@ -28,6 +29,11 @@ const Header: React.FC<HeaderProps> = ({ teamName, onSignOut, children }) => {
         <span style={{ fontWeight: '600', color: 'var(--color-accent)' }}>
           {teamName}
         </span>
+        {onShowRules && (
+          <button onClick={onShowRules} style={{ color: 'var(--color-primary)', display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.5rem', border: 'none', background: 'transparent', fontWeight: '600' }}>
+            <Info size={18} /> Rules
+          </button>
+        )}
         <button 
           onClick={onSignOut}
           style={{
@@ -46,6 +52,18 @@ const Header: React.FC<HeaderProps> = ({ teamName, onSignOut, children }) => {
           Sign Out
         </button>
       </div>
+      <style>{`
+        @media (max-width: 768px) {
+          .header-container {
+            flex-direction: column;
+            text-align: center;
+          }
+          .header-title {
+            width: 100%;
+            text-align: center;
+          }
+        }
+      `}</style>
     </header>
   );
 };

@@ -7,8 +7,9 @@ import Leaderboard from './components/sidebar/Leaderboard';
 import { Auth } from './components/auth/Auth';
 import { BingoCelebration } from './components/bingo/BingoCelebration';
 import { AdminDashboard } from './components/bingo/AdminDashboard';
+import ScoringModal from './components/bingo/ScoringModal';
 import { supabase } from './lib/supabase';
-import { Settings, Gamepad2 } from 'lucide-react';
+import { Settings, Gamepad2, Info } from 'lucide-react';
 import { calculateTeamScore } from './lib/scoring';
 import type { Challenge, Team, Game } from './types/game';
 
@@ -26,6 +27,7 @@ function App() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [showBingoEffect, setShowBingoEffect] = useState(false);
+  const [showScoringModal, setShowScoringModal] = useState(false);
   const [bingoCount, setBingoCount] = useState(0);
   const isInitialLoad = useRef(true);
 
@@ -140,7 +142,11 @@ function App() {
 
         const teamsWithScores = teamsData.map(t => ({
           ...t,
-          score: calculateTeamScore(t.id, progressData, filteredChallenges, teamsData.map(td => td.id))
+          score: calculateTeamScore(t.id, progressData, filteredChallenges, teamsData.map(td => td.id), {
+            square: gameData.points_per_square,
+            bingo: gameData.points_per_bingo,
+            unique: gameData.points_per_unique
+          })
         }));
         setTeams(teamsWithScores);
       }
@@ -377,46 +383,7 @@ function App() {
 
   return (
     <div style={{ minHeight: '100vh', paddingBottom: '3rem' }}>
-      <Header teamName={currentTeam?.name || 'Loading...'} onSignOut={handleSignOut}>
-        {adminGameId && (
-          <div style={{ display: 'flex', gap: '0.5rem', marginLeft: 'auto', marginRight: '1rem' }}>
-            <button
-              onClick={() => setActiveView('team')}
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '0.5rem',
-                padding: '0.5rem 1rem',
-                borderRadius: 'var(--radius-sm)',
-                backgroundColor: activeView === 'team' ? 'var(--color-primary)' : 'transparent',
-                color: activeView === 'team' ? 'white' : 'var(--color-text)',
-                fontWeight: 'bold',
-                fontSize: '0.875rem'
-              }}
-            >
-              <Gamepad2 size={18} />
-              Game
-            </button>
-            <button
-              onClick={() => setActiveView('admin')}
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '0.5rem',
-                padding: '0.5rem 1rem',
-                borderRadius: 'var(--radius-sm)',
-                backgroundColor: activeView === 'admin' ? 'var(--color-primary)' : 'transparent',
-                color: activeView === 'admin' ? 'white' : 'var(--color-text)',
-                fontWeight: 'bold',
-                fontSize: '0.875rem'
-              }}
-            >
-              <Settings size={18} />
-              Admin
-            </button>
-          </div>
-        )}
-      </Header>
+      <Header teamName={currentTeam?.name || 'Loading...'} onSignOut={handleSignOut} onShowRules={() => setShowScoringModal(true)} />
       
       <main style={{
         maxWidth: '1200px',
@@ -469,6 +436,18 @@ function App() {
         canComplete={canComplete}
         disabledReason={disabledReason}
       />
+
+      {showScoringModal && game && (
+        <ScoringModal 
+          onClose={() => setShowScoringModal(false)}
+          points={{ 
+            square: game.points_per_square, 
+            bingo: game.points_per_bingo, 
+            unique: game.points_per_unique,
+            rules: game.game_rules
+          }}
+        />
+      )}
 
       <BingoCelebration 
         show={showBingoEffect} 
