@@ -9,6 +9,7 @@ import { BingoCelebration } from './components/bingo/BingoCelebration';
 import { AdminDashboard } from './components/bingo/AdminDashboard';
 import { supabase } from './lib/supabase';
 import { Settings, Gamepad2 } from 'lucide-react';
+import { calculateTeamScore } from './lib/scoring';
 import type { Challenge, Team, Game } from './types/game';
 
 function App() {
@@ -139,7 +140,7 @@ function App() {
 
         const teamsWithScores = teamsData.map(t => ({
           ...t,
-          score: progressData.filter((p: any) => p.team_id === t.id).length
+          score: calculateTeamScore(t.id, progressData, filteredChallenges, teamsData.map(td => td.id))
         }));
         setTeams(teamsWithScores);
       }
@@ -337,7 +338,7 @@ function App() {
     );
   }
 
-  if (error || (teamId && !game)) {
+  if (error) {
     return (
       <FullScreenState isError>
         <h2 style={{ color: 'var(--color-secondary)', marginBottom: '1rem' }}>Oops!</h2>
@@ -456,6 +457,7 @@ function App() {
             currentTeamId={teamId || ''} 
             gameDurationSeconds={game?.duration_seconds || 0}
             gameStoppedAt={game?.stopped_at || null}
+            isPublished={!!game?.published_at}
           />
         </aside>
       </main>

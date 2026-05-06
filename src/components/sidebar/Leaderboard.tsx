@@ -7,9 +7,10 @@ interface LeaderboardProps {
   currentTeamId: string;
   gameDurationSeconds: number;
   gameStoppedAt: string | null;
+  isPublished?: boolean;
 }
 
-const Leaderboard: React.FC<LeaderboardProps> = ({ teams, currentTeamId, gameDurationSeconds, gameStoppedAt }) => {
+const Leaderboard: React.FC<LeaderboardProps> = ({ teams, currentTeamId, gameDurationSeconds, gameStoppedAt, isPublished }) => {
   const sortedTeams = [...teams].sort((a, b) => b.score - a.score);
 
   const getTeamStatus = (team: Team) => {
@@ -61,7 +62,7 @@ const Leaderboard: React.FC<LeaderboardProps> = ({ teams, currentTeamId, gameDur
         fontSize: '1.2rem'
       }}>
         <Trophy size={24} />
-        <h2>Leaderboard</h2>
+        <h2>{isPublished ? 'Final Leaderboard' : 'Leaderboard'}</h2>
       </div>
 
       <div style={{ 
@@ -121,7 +122,7 @@ const Leaderboard: React.FC<LeaderboardProps> = ({ teams, currentTeamId, gameDur
                 }}>
                   {team.score}
                 </div>
-                <div style={{ fontSize: '0.65rem', color: '#9CA3AF', fontWeight: 'bold' }}>SQUARES</div>
+                <div style={{ fontSize: '0.65rem', color: '#9CA3AF', fontWeight: 'bold' }}>{isPublished ? 'SCORE' : 'SQUARES'}</div>
               </div>
             </div>
           );

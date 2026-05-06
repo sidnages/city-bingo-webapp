@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { calculateTeamScore } from '../../lib/scoring';
 import { supabase } from '../../lib/supabase';
 import { Users, Play, Square, CheckSquare, Loader2, X, Trophy, AlertTriangle, Eye, Settings, BookOpen } from 'lucide-react';
 import type { Game, Team, Challenge, TeamProgress } from '../../types/game';
@@ -48,7 +49,8 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ gameId, onSignOu
         .eq('game_id', gameId)
         .order('position', { ascending: true });
       if (challengesError) throw challengesError;
-      setChallenges(challengesData);
+      const challenges = challengesData || [];
+      setChallenges(challenges);
 
       // Fetch All Progress
       const { data: progressData, error: progressError } = await supabase
@@ -56,11 +58,11 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ gameId, onSignOu
         .select('*, challenges!inner(game_id)')
         .eq('challenges.game_id', gameId);
       if (progressError) throw progressError;
-      setAllProgress(progressData);
+      setAllProgress(progressData || []);
 
       const enrichedTeams = teamsData.map(t => ({
         ...t,
-        score: progressData.filter(p => p.team_id === t.id).length
+        score: calculateTeamScore(t.id, progressData || [], challenges, teamsData.map(td => td.id))
       }));
       setTeams(enrichedTeams);
 
@@ -143,6 +145,26 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ gameId, onSignOu
     }
   };
 
+  const handlePublishScores = async () => {
+    if (!window.confirm('Are you sure you want to PUBLISH scores? This action is final and will lock all results for the public.')) return;
+    setActionLoading(true);
+    try {
+      const { error } = await supabase
+        .from('games')
+        .update({ published_at: new Date().toISOString() })
+        .eq('id', gameId);
+      if (error) throw error;
+      
+      // Refresh state
+      await fetchData();
+    } catch (error) {
+      console.error('Error publishing scores:', error);
+      alert('Failed to publish scores.');
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
   const handleRemoveTeam = async (teamId: string) => {
     if (!window.confirm('Are you sure you want to remove this team? This action cannot be undone.')) return;
     setActionLoading(true);
@@ -163,6 +185,10 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ gameId, onSignOu
   };
 
   const toggleChallenge = async (teamId: string, challengeId: string, isCompleted: boolean) => {
+    if (game?.published_at) {
+      alert('You cannot modify progress after scores have been published.');
+      return;
+    }
     if (!game?.stopped_at) {
       alert('You can only modify progress after the game has finished.');
       return;
@@ -260,6 +286,25 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ gameId, onSignOu
               {actionLoading ? <Loader2 className="animate-spin" size={20} /> : <Square size={20} />}
               STOP GAME
             </button>
+          ) : !game?.published_at ? (
+            <button
+              onClick={handlePublishScores}
+              disabled={actionLoading}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.5rem',
+                padding: '0.75rem 1.5rem',
+                backgroundColor: 'var(--color-secondary)',
+                color: 'white',
+                borderRadius: 'var(--radius-md)',
+                fontWeight: 'bold',
+                opacity: actionLoading ? 0.7 : 1
+              }}
+            >
+              {actionLoading ? <Loader2 className="animate-spin" size={20} /> : <Trophy size={20} />}
+              PUBLISH SCORES
+            </button>
           ) : (
             <div style={{
               padding: '0.75rem 1.5rem',
@@ -272,7 +317,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ gameId, onSignOu
               gap: '0.5rem'
             }}>
               <AlertTriangle size={20} />
-              GAME ENDED
+              SCORES PUBLISHED
             </div>
           )}
           <button

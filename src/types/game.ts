@@ -26,6 +26,7 @@ export interface Game {
   admin_passcode?: string;
   started_at?: string;
   stopped_at?: string;
+  published_at?: string;
 }
 
 export interface TeamProgress {
