@@ -59,7 +59,7 @@ const Leaderboard: React.FC<LeaderboardProps> = ({ teams, currentTeamId, gameDur
         marginBottom: '1.5rem',
         color: 'var(--color-accent)',
         fontWeight: 'bold',
-        fontSize: '1.2rem'
+        fontSize: '1.15rem'
       }}>
         <Trophy size={24} />
         <h2>{isPublished ? 'Final Leaderboard' : 'Leaderboard'}</h2>

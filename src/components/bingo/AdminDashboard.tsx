@@ -228,6 +228,28 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ gameId, onSignOu
     }
   };
 
+  // Helper to format remaining time
+  const getRemainingTime = (team: Team) => {
+    if (!team.started_at || game?.stopped_at) return 'Time Up';
+    
+    const startTime = new Date(team.started_at).getTime();
+    const elapsed = Math.floor((Date.now() - startTime) / 1000);
+    const remaining = Math.max(0, (game?.duration_seconds || 0) - elapsed);
+    
+    if (remaining === 0) return 'Time Up';
+    
+    const mins = Math.floor(remaining / 60);
+    const secs = remaining % 60;
+    return `${mins}:${secs.toString().padStart(2, '0')}`;
+  };
+
+  // Re-render every second to update team timers
+  const [, setTick] = useState(0);
+  useEffect(() => {
+    const interval = setInterval(() => setTick(t => t + 1), 1000);
+    return () => clearInterval(interval);
+  }, []);
+
   if (loading && !game) {
     return (
       <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '50vh' }}>
@@ -423,8 +445,8 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ gameId, onSignOu
                     </div>
                     <div>
                       <div style={{ fontWeight: '700', color: 'var(--color-text)' }}>{team.name}</div>
-                      <div style={{ fontSize: '0.75rem', color: '#6B7280' }}>
-                        {team.started_at ? 'Started' : 'Not started'}
+                      <div style={{ fontSize: '0.75rem', color: getRemainingTime(team) === 'Time Up' ? '#DC2626' : '#6B7280' }}>
+                        {team.started_at ? getRemainingTime(team) : 'Not started'}
                       </div>
                     </div>
                   </div>

@@ -140,15 +140,24 @@ function App() {
         // Mark initial load as complete after the first check
         isInitialLoad.current = false;
 
-        const teamsWithScores = teamsData.map(t => ({
-          ...t,
-          score: calculateTeamScore(t.id, progressData, filteredChallenges, teamsData.map(td => td.id), {
+        const teamsWithData = teamsData.map(t => {
+          const teamProgress = progressData.filter((p: any) => p.team_id === t.id);
+          const squaresCompleted = teamProgress.length;
+          const calculatedScore = calculateTeamScore(t.id, progressData, filteredChallenges, teamsData.map(td => td.id), {
             square: gameData.points_per_square,
             bingo: gameData.points_per_bingo,
             unique: gameData.points_per_unique
-          })
-        }));
-        setTeams(teamsWithScores);
+          });
+          
+          return {
+            ...t,
+            squaresCompleted,
+            calculatedScore,
+            // Display value based on game status
+            score: gameData.published_at ? calculatedScore : squaresCompleted
+          };
+        });
+        setTeams(teamsWithData);
       }
     } catch (err: any) {
       console.error('Error fetching data:', err);
