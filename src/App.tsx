@@ -6,11 +6,16 @@ import Timer from './components/sidebar/Timer';
 import Leaderboard from './components/sidebar/Leaderboard';
 import { Auth } from './components/auth/Auth';
 import { BingoCelebration } from './components/bingo/BingoCelebration';
+import { AdminDashboard } from './components/bingo/AdminDashboard';
 import { supabase } from './lib/supabase';
+import { Settings, Gamepad2 } from 'lucide-react';
 import type { Challenge, Team, Game } from './types/game';
 
 function App() {
   const [teamId, setTeamId] = useState<string | null>(localStorage.getItem('teamId'));
+  const [adminGameId, setAdminGameId] = useState<string | null>(localStorage.getItem('adminGameId'));
+  const [activeView, setActiveView] = useState<'team' | 'admin'>(adminGameId && !teamId ? 'admin' : 'team');
+  
   const [currentTeam, setCurrentTeam] = useState<Team | null>(null);
   const [game, setGame] = useState<Game | null>(null);
   const [challenges, setChallenges] = useState<Challenge[]>([]);
@@ -147,7 +152,7 @@ function App() {
   }, [teamId]);
 
   const handleStartRun = async () => {
-    if (!teamId) return;
+    if (!teamId || !game?.started_at) return;
     try {
       const { error } = await supabase
         .from('teams')
@@ -155,7 +160,6 @@ function App() {
         .eq('id', teamId);
       
       if (error) throw error;
-      // fetchData() will be triggered by real-time, but call it manually too for immediate feedback
       await fetchData();
     } catch (error: any) {
       console.error('Error starting run:', error);
@@ -169,16 +173,9 @@ function App() {
     if (teamId) {
       const channel = supabase
         .channel('schema-db-changes')
-        .on(
-          'postgres_changes',
-          { event: '*', schema: 'public', table: 'team_progress' },
-          () => fetchData()
-        )
-        .on(
-          'postgres_changes',
-          { event: 'UPDATE', schema: 'public', table: 'teams' },
-          () => fetchData()
-        )
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'team_progress' }, () => fetchData())
+        .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'teams' }, () => fetchData())
+        .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'games' }, () => fetchData())
         .subscribe();
 
       return () => {
@@ -196,13 +193,23 @@ function App() {
   const handleLogin = (id: string) => {
     localStorage.setItem('teamId', id);
     setTeamId(id);
+    setActiveView('team');
+  };
+
+  const handleAdminLogin = (id: string) => {
+    localStorage.setItem('adminGameId', id);
+    setAdminGameId(id);
+    setActiveView('admin');
   };
 
   const handleSignOut = () => {
     localStorage.removeItem('teamId');
+    localStorage.removeItem('adminGameId');
     setTeamId(null);
+    setAdminGameId(null);
     setCurrentTeam(null);
     setGame(null);
+    setActiveView('team');
   };
 
   const handleSquareClick = (challenge: Challenge) => {
@@ -210,6 +217,13 @@ function App() {
   };
 
   const getCompletionStatus = () => {
+    if (game?.stopped_at) {
+      return { 
+        canComplete: false, 
+        disabledReason: "The game has ended. No more challenges can be completed." 
+      };
+    }
+
     if (!currentTeam?.started_at) {
       return { 
         canComplete: false, 
@@ -275,8 +289,12 @@ function App() {
     </div>
   );
 
-  if (!teamId) {
-    return <Auth onLogin={handleLogin} />;
+  if (!teamId && !adminGameId) {
+    return <Auth onLogin={handleLogin} onAdminLogin={handleAdminLogin} />;
+  }
+
+  if (activeView === 'admin' && adminGameId) {
+    return <AdminDashboard gameId={adminGameId} onSignOut={handleSignOut} />;
   }
 
   if (loading && !currentTeam) {
@@ -336,7 +354,46 @@ function App() {
 
   return (
     <div style={{ minHeight: '100vh', paddingBottom: '3rem' }}>
-      <Header teamName={currentTeam?.name || 'Loading...'} onSignOut={handleSignOut} />
+      <Header teamName={currentTeam?.name || 'Loading...'} onSignOut={handleSignOut}>
+        {adminGameId && (
+          <div style={{ display: 'flex', gap: '0.5rem', marginLeft: 'auto', marginRight: '1rem' }}>
+            <button
+              onClick={() => setActiveView('team')}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.5rem',
+                padding: '0.5rem 1rem',
+                borderRadius: 'var(--radius-sm)',
+                backgroundColor: activeView === 'team' ? 'var(--color-primary)' : 'transparent',
+                color: activeView === 'team' ? 'white' : 'var(--color-text)',
+                fontWeight: 'bold',
+                fontSize: '0.875rem'
+              }}
+            >
+              <Gamepad2 size={18} />
+              Game
+            </button>
+            <button
+              onClick={() => setActiveView('admin')}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.5rem',
+                padding: '0.5rem 1rem',
+                borderRadius: 'var(--radius-sm)',
+                backgroundColor: activeView === 'admin' ? 'var(--color-primary)' : 'transparent',
+                color: activeView === 'admin' ? 'white' : 'var(--color-text)',
+                fontWeight: 'bold',
+                fontSize: '0.875rem'
+              }}
+            >
+              <Settings size={18} />
+              Admin
+            </button>
+          </div>
+        )}
+      </Header>
       
       <main style={{
         maxWidth: '1200px',
@@ -367,12 +424,16 @@ function App() {
               startedAt={currentTeam.started_at || null} 
               durationSeconds={game.duration_seconds} 
               onStart={handleStartRun}
+              gameStoppedAt={game.stopped_at || null}
+              disabled={!game.started_at || !!game.stopped_at}
+              disabledReason={game.stopped_at ? "The game has ended." : "The game has not been started by the admin yet."}
             />
           )}
           <Leaderboard 
             teams={teams} 
             currentTeamId={teamId || ''} 
             gameDurationSeconds={game?.duration_seconds || 0}
+            gameStoppedAt={game?.stopped_at || null}
           />
         </aside>
       </main>

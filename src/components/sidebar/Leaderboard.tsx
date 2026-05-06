@@ -6,12 +6,14 @@ interface LeaderboardProps {
   teams: Team[];
   currentTeamId: string;
   gameDurationSeconds: number;
+  gameStoppedAt: string | null;
 }
 
-const Leaderboard: React.FC<LeaderboardProps> = ({ teams, currentTeamId, gameDurationSeconds }) => {
+const Leaderboard: React.FC<LeaderboardProps> = ({ teams, currentTeamId, gameDurationSeconds, gameStoppedAt }) => {
   const sortedTeams = [...teams].sort((a, b) => b.score - a.score);
 
   const getTeamStatus = (team: Team) => {
+    if (gameStoppedAt) return 'finished';
     if (!team.started_at) return 'pending';
     
     const startTime = new Date(team.started_at).getTime();
@@ -20,6 +22,7 @@ const Leaderboard: React.FC<LeaderboardProps> = ({ teams, currentTeamId, gameDur
   };
 
   const formatTeamTime = (team: Team) => {
+    if (gameStoppedAt) return 'Time Up';
     if (!team.started_at) return 'Ready';
     
     const startTime = new Date(team.started_at).getTime();
@@ -65,7 +68,7 @@ const Leaderboard: React.FC<LeaderboardProps> = ({ teams, currentTeamId, gameDur
         display: 'flex', 
         flexDirection: 'column', 
         gap: '0.75rem',
-        maxHeight: '400px',
+        maxHeight: '320px',
         overflowY: 'auto',
         paddingRight: '4px'
       }} className="custom-scrollbar">

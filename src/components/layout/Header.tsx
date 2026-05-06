@@ -4,9 +4,10 @@ import { LogOut } from 'lucide-react';
 interface HeaderProps {
   teamName: string;
   onSignOut?: () => void;
+  children?: React.ReactNode;
 }
 
-const Header: React.FC<HeaderProps> = ({ teamName, onSignOut }) => {
+const Header: React.FC<HeaderProps> = ({ teamName, onSignOut, children }) => {
   return (
     <header style={{
       display: 'flex',
@@ -15,12 +16,15 @@ const Header: React.FC<HeaderProps> = ({ teamName, onSignOut }) => {
       padding: '1rem 2rem',
       backgroundColor: 'var(--color-white)',
       borderBottom: '4px solid var(--color-primary)',
-      marginBottom: '2rem'
+      marginBottom: '2rem',
+      flexWrap: 'wrap',
+      gap: '1rem'
     }} className="fun-shadow">
       <h1 style={{ color: 'var(--color-secondary)', fontSize: '1.5rem', fontWeight: 'bold' }}>
         City Bingo
       </h1>
-      <div style={{ display: 'flex', alignItems: 'center', gap: '1.5rem' }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: '1.5rem', flex: 1, justifyContent: 'flex-end' }}>
+        {children}
         <span style={{ fontWeight: '600', color: 'var(--color-accent)' }}>
           {teamName}
         </span>

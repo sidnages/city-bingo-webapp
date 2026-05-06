@@ -6,11 +6,12 @@ import type { Game, Challenge } from '../../types/game';
 
 interface AuthProps {
   onLogin: (teamId: string) => void;
+  onAdminLogin: (gameId: string) => void;
 }
 
 type AuthView = 'login' | 'signup' | 'create-game' | 'edit-auth' | 'edit-game' | 'game-success';
 
-export const Auth: React.FC<AuthProps> = ({ onLogin }) => {
+export const Auth: React.FC<AuthProps> = ({ onLogin, onAdminLogin }) => {
   const [view, setView] = useState<AuthView>('login');
   const [loading, setLoading] = useState(false);
   const [teamName, setTeamName] = useState('');
@@ -31,7 +32,7 @@ export const Auth: React.FC<AuthProps> = ({ onLogin }) => {
       // 1. Find the game
       const { data: game, error: gameError } = await supabase
         .from('games')
-        .select('id')
+        .select('id, stopped_at')
         .eq('game_code', gameCode.toUpperCase())
         .single();
 
@@ -40,6 +41,9 @@ export const Auth: React.FC<AuthProps> = ({ onLogin }) => {
       }
 
       if (view === 'signup') {
+        if (game.stopped_at) {
+          throw new Error('This game has already ended. No more teams can be added.');
+        }
         const trimmedName = teamName.trim();
         if (!trimmedName) throw new Error('Please enter a team name.');
 
@@ -116,30 +120,7 @@ export const Auth: React.FC<AuthProps> = ({ onLogin }) => {
         throw new Error('Invalid Admin Passcode.');
       }
 
-      // Check if any team has started
-      const { data: teams, error: teamsError } = await supabase
-        .from('teams')
-        .select('started_at')
-        .eq('game_id', game.id)
-        .not('started_at', 'is', null);
-
-      if (teamsError) throw teamsError;
-      
-      const hasGameStarted = teams && teams.length > 0;
-      setIsReadOnly(hasGameStarted);
-
-      // Fetch Challenges
-      const { data: challenges, error: challengesError } = await supabase
-        .from('challenges')
-        .select('*')
-        .eq('game_id', game.id)
-        .order('position', { ascending: true });
-
-      if (challengesError) throw challengesError;
-
-      setEditingGame(game);
-      setEditingChallenges(challenges);
-      setView('edit-game');
+      onAdminLogin(game.id);
     } catch (error: any) {
       setMessage({ type: 'error', text: error.message || 'An error occurred.' });
     } finally {
@@ -156,6 +137,7 @@ export const Auth: React.FC<AuthProps> = ({ onLogin }) => {
       code: newGameCode
     });
     setEditingGame(null);
+    setAdminGame(null);
     setEditingChallenges([]);
   };
 
@@ -192,7 +174,7 @@ export const Auth: React.FC<AuthProps> = ({ onLogin }) => {
         existingChallenges={editingChallenges.length > 0 ? editingChallenges : undefined}
         isReadOnly={isReadOnly}
         onClose={() => {
-          setView('login');
+          setView(editingGame ? 'admin-choice' : 'login');
           setEditingGame(null);
           setEditingChallenges([]);
           setIsReadOnly(false);
@@ -230,7 +212,7 @@ export const Auth: React.FC<AuthProps> = ({ onLogin }) => {
             color: 'var(--color-secondary)',
             marginBottom: '0.5rem'
           }}>
-            {isGameSuccess ? 'Game Ready!' : (view === 'signup' ? 'Register Team' : (view === 'edit-auth' ? 'Edit Game' : 'Bingo Login'))}
+            {isGameSuccess ? 'Game Ready!' : (view === 'signup' ? 'Register Team' : (view === 'edit-auth' ? 'Admin Login' : 'Bingo Login'))}
           </h2>
           <p style={{ fontSize: '0.875rem', color: '#4B5563' }}>
             {isRegSuccess 
@@ -383,7 +365,7 @@ export const Auth: React.FC<AuthProps> = ({ onLogin }) => {
               {loading ? (
                 <Loader2 className="animate-spin" size={20} />
               ) : (
-                view === 'signup' ? 'Get Team ID' : (view === 'edit-auth' ? 'Verify & Edit' : 'Login')
+                view === 'signup' ? 'Get Team ID' : 'Login'
               )}
             </button>
           )}
@@ -432,10 +414,10 @@ export const Auth: React.FC<AuthProps> = ({ onLogin }) => {
                       borderRadius: 'var(--radius-sm)',
                       fontWeight: '600'
                     }}
-                    onClick={() => setView('create-game')}
+                    onClick={() => setView('edit-auth')}
                   >
-                    <PlusCircle size={16} />
-                    Create Game
+                    <Settings size={16} />
+                    Game Admin
                   </button>
 
                   <button
@@ -453,10 +435,10 @@ export const Auth: React.FC<AuthProps> = ({ onLogin }) => {
                       borderRadius: 'var(--radius-sm)',
                       fontWeight: '600'
                     }}
-                    onClick={() => setView('edit-auth')}
+                    onClick={() => setView('create-game')}
                   >
-                    <Settings size={16} />
-                    Edit Game
+                    <PlusCircle size={16} />
+                    Create Game
                   </button>
                 </div>
               </>

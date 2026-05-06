@@ -24,6 +24,8 @@ export interface Game {
   duration_seconds: number;
   created_at: string;
   admin_passcode?: string;
+  started_at?: string;
+  stopped_at?: string;
 }
 
 export interface TeamProgress {

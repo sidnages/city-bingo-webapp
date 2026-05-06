@@ -5,9 +5,12 @@ interface TimerProps {
   startedAt: string | null;
   durationSeconds: number;
   onStart: () => void;
+  gameStoppedAt: string | null;
+  disabled?: boolean;
+  disabledReason?: string;
 }
 
-const Timer: React.FC<TimerProps> = ({ startedAt, durationSeconds, onStart }) => {
+const Timer: React.FC<TimerProps> = ({ startedAt, durationSeconds, onStart, gameStoppedAt, disabled, disabledReason }) => {
   const calculateTimeLeft = useCallback(() => {
     if (!startedAt) return durationSeconds;
     const startTime = new Date(startedAt).getTime();
@@ -16,15 +19,15 @@ const Timer: React.FC<TimerProps> = ({ startedAt, durationSeconds, onStart }) =>
   }, [startedAt, durationSeconds]);
 
   const [timeLeft, setTimeLeft] = useState(calculateTimeLeft());
-  const [isFinished, setIsFinished] = useState(false);
+  const [isFinished, setIsFinished] = useState(!!gameStoppedAt || (calculateTimeLeft() === 0 && startedAt !== null));
 
   useEffect(() => {
     // Initial check
     const initialRemaining = calculateTimeLeft();
     setTimeLeft(initialRemaining);
-    setIsFinished(initialRemaining === 0 && startedAt !== null);
+    setIsFinished(!!gameStoppedAt || (initialRemaining === 0 && startedAt !== null));
 
-    if (!startedAt || initialRemaining === 0) return;
+    if (!startedAt || initialRemaining === 0 || gameStoppedAt) return;
 
     const interval = setInterval(() => {
       const remaining = calculateTimeLeft();
@@ -37,7 +40,7 @@ const Timer: React.FC<TimerProps> = ({ startedAt, durationSeconds, onStart }) =>
     }, 1000);
 
     return () => clearInterval(interval);
-  }, [startedAt, durationSeconds, calculateTimeLeft]);
+  }, [startedAt, durationSeconds, calculateTimeLeft, gameStoppedAt]);
 
   const formatTime = (seconds: number) => {
     if (isFinished) return "Time's Up";
@@ -78,27 +81,35 @@ const Timer: React.FC<TimerProps> = ({ startedAt, durationSeconds, onStart }) =>
       </div>
 
       {isPending && (
-        <button
-          onClick={onStart}
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            gap: '0.5rem',
-            padding: '1rem',
-            backgroundColor: 'var(--color-secondary)',
-            color: 'white',
-            borderRadius: 'var(--radius-md)',
-            fontWeight: '800',
-            fontSize: '1rem',
-            boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
-            cursor: 'pointer'
-          }}
-          className="pulse-animation"
-        >
-          <Play size={20} fill="white" />
-          START RUN
-        </button>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+          <button
+            onClick={onStart}
+            disabled={disabled}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '0.5rem',
+              padding: '1rem',
+              backgroundColor: disabled ? '#D1D5DB' : 'var(--color-secondary)',
+              color: 'white',
+              borderRadius: 'var(--radius-md)',
+              fontWeight: '800',
+              fontSize: '1rem',
+              boxShadow: disabled ? 'none' : '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
+              cursor: disabled ? 'not-allowed' : 'pointer'
+            }}
+            className={!disabled ? "pulse-animation" : ""}
+          >
+            <Play size={20} fill="white" />
+            START RUN
+          </button>
+          {disabled && disabledReason && (
+            <p style={{ fontSize: '0.75rem', color: '#6B7280', textAlign: 'center', fontWeight: '500' }}>
+              {disabledReason}
+            </p>
+          )}
+        </div>
       )}
 
       <style>{`
