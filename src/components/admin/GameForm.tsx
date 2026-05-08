@@ -76,6 +76,7 @@ export const GameForm: React.FC<GameFormProps> = ({ existingGame, existingChalle
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (isReadOnly) return;
+    
     setLoading(true);
     setError(null);
 
@@ -93,6 +94,16 @@ export const GameForm: React.FC<GameFormProps> = ({ existingGame, existingChalle
       setError(`Missing titles for Square(s): ${missingTitles.join(', ')}`);
       setLoading(false);
       return;
+    }
+
+    // Security gate for game creation, performed after basic validation
+    if (!existingGame) {
+      const secret = prompt('Please enter the game creation secret:');
+      if (secret !== import.meta.env.VITE_GAME_CREATION_SECRET) {
+        alert('Invalid game creation secret.');
+        setLoading(false);
+        return;
+      }
     }
 
     try {

@@ -19,6 +19,7 @@ City Bingo uses Supabase for database and real-time synchronization.
         ```
         VITE_SUPABASE_URL=your_supabase_url
         VITE_SUPABASE_ANON_KEY=your_supabase_anon_key
+        VITE_GAME_CREATION_SECRET=your_secret_password
         ```
 
 ### 2. Local Development
@@ -42,7 +43,7 @@ This project is optimized for deployment on [Vercel](https://vercel.com/).
 
 1.  **Push to GitHub:** Ensure your code is in a GitHub repository.
 2.  **Import to Vercel:** Create a new project in Vercel and import your repository.
-3.  **Configure Environment Variables:** In the Vercel project settings, add `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY`.
+3.  **Configure Environment Variables:** In the Vercel project settings, add `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY` and `VITE_GAME_CREATION_SECRET`.
 4.  **Deploy:** Vercel will automatically build and deploy your app.
 
 ---
@@ -86,6 +87,7 @@ As an organizer, you use create games and use the Admin Dashboard to manage the 
     *   **Scoring:** Configure points awarded for each square, for completing a Bingo (row, column, or diagonal), and for being the only team to complete a challenge.
     *   **Require Instagram:** Enable this to mandate that teams provide proof via Instagram for every challenge.
     *   **Bingo Board:** Click squares to define titles and descriptions. You can toggle a "FREE SPACE" in the center.
+    *   To prevent random people from creating a game, you will be prompted for a "secret" when trying to create the game. Message the website creator for the secret.
     *   When you finish creating a game, REMEMBER the 6-character **Game ID** AND your inputted 4-digit **Admin Passcode**.
 2.  **Accessing the Admin Dashboard:**
     *   Click **Game Admin** on the landing page.
