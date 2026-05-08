@@ -21,9 +21,11 @@ CREATE TABLE games (
     points_per_square INTEGER NOT NULL DEFAULT 1,
     points_per_bingo INTEGER NOT NULL DEFAULT 2,
     points_per_unique INTEGER NOT NULL DEFAULT 2,
+    require_instagram BOOLEAN NOT NULL DEFAULT FALSE,
     game_rules TEXT,
     started_at TIMESTAMP WITH TIME ZONE,
     stopped_at TIMESTAMP WITH TIME ZONE,
+    published_at TIMESTAMP WITH TIME ZONE,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
@@ -54,6 +56,7 @@ CREATE TABLE team_progress (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     team_id UUID REFERENCES teams(id) ON DELETE CASCADE,
     challenge_id UUID REFERENCES challenges(id) ON DELETE CASCADE,
+    instagram_url TEXT,
     completed_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
     UNIQUE(team_id, challenge_id)
 );
@@ -94,8 +97,8 @@ CREATE POLICY "Allow public delete team_progress" ON team_progress FOR DELETE US
 -- 4. Sample Data (Optional)
 
 -- Create a game
-INSERT INTO games (id, game_code, name, duration_seconds, admin_passcode) 
-VALUES ('d290f1ee-6c54-4b01-90e6-d701748f0851', 'CITY26', 'Downtown Explorer', 7200, '0000');
+INSERT INTO games (id, game_code, name, duration_seconds, admin_passcode, require_instagram) 
+VALUES ('d290f1ee-6c54-4b01-90e6-d701748f0851', 'CITY26', 'Downtown Explorer', 7200, '1234', false);
 
 -- Create challenges (25 for a 5x5 grid)
 INSERT INTO challenges (game_id, title, description, position, is_free_space) VALUES

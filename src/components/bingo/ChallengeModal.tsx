@@ -1,18 +1,44 @@
 import React from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Check, Lock, AlertCircle } from 'lucide-react';
+import { X, Check, Lock, AlertCircle, Camera, ExternalLink } from 'lucide-react';
 import type { Challenge } from '../../types/game';
 
 interface ChallengeModalProps {
   challenge: Challenge | null;
   onClose: () => void;
-  onComplete: (challenge: Challenge) => void;
+  onComplete: (challenge: Challenge, instagramUrl?: string) => void;
   canComplete: boolean;
   disabledReason?: string;
+  requireInstagram?: boolean;
 }
 
-const ChallengeModal: React.FC<ChallengeModalProps> = ({ challenge, onClose, onComplete, canComplete, disabledReason }) => {
+const ChallengeModal: React.FC<ChallengeModalProps> = ({ 
+  challenge, 
+  onClose, 
+  onComplete, 
+  canComplete, 
+  disabledReason,
+  requireInstagram
+}) => {
+  const [instagramUrl, setInstagramUrl] = React.useState('');
+  const [urlError, setUrlError] = React.useState<string | null>(null);
+
+  React.useEffect(() => {
+    setInstagramUrl('');
+    setUrlError(null);
+  }, [challenge]);
+
   if (!challenge) return null;
+
+  const handleComplete = () => {
+    if (requireInstagram && !challenge.isCompleted) {
+      if (!instagramUrl.startsWith('https://www.instagram.com/')) {
+        setUrlError('URL must start with https://www.instagram.com/');
+        return;
+      }
+    }
+    onComplete(challenge, instagramUrl);
+  };
 
   return (
     <AnimatePresence>
@@ -108,11 +134,64 @@ const ChallengeModal: React.FC<ChallengeModalProps> = ({ challenge, onClose, onC
             {challenge.description}
           </p>
 
+          {requireInstagram && !challenge.isCompleted && !challenge.is_free_space && (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+              <label style={{ fontSize: '0.875rem', fontWeight: '700', color: 'var(--color-text)' }}>
+                Instagram Post URL
+              </label>
+              <div style={{ position: 'relative' }}>
+                <Camera size={18} style={{ position: 'absolute', left: '0.75rem', top: '50%', transform: 'translateY(-50%)', color: '#6B7280' }} />
+                <input
+                  type="text"
+                  placeholder="https://www.instagram.com/p/..."
+                  value={instagramUrl}
+                  onChange={(e) => {
+                    setInstagramUrl(e.target.value);
+                    if (urlError) setUrlError(null);
+                  }}
+                  style={{
+                    width: '100%',
+                    padding: '0.75rem 0.75rem 0.75rem 2.5rem',
+                    borderRadius: 'var(--radius-md)',
+                    border: `2px solid ${urlError ? '#DC2626' : '#E5E7EB'}`,
+                    fontSize: '0.875rem'
+                  }}
+                />
+              </div>
+              {urlError && <span style={{ color: '#DC2626', fontSize: '0.75rem', fontWeight: '600' }}>{urlError}</span>}
+            </div>
+          )}
+
+          {challenge.instagramUrl && (
+            <a 
+              href={challenge.instagramUrl} 
+              target="_blank" 
+              rel="noopener noreferrer"
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '0.5rem',
+                color: 'var(--color-primary)',
+                fontWeight: '700',
+                fontSize: '0.9rem',
+                padding: '0.5rem',
+                backgroundColor: 'var(--color-bg)',
+                borderRadius: 'var(--radius-md)',
+                textDecoration: 'none'
+              }}
+            >
+              <Camera size={18} />
+              View Instagram Post
+              <ExternalLink size={14} />
+            </a>
+          )}
+
           {!challenge.isCompleted && !challenge.is_free_space && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
               <button
                 disabled={!canComplete}
-                onClick={() => onComplete(challenge)}
+                onClick={handleComplete}
                 style={{
                   display: 'flex',
                   alignItems: 'center',
@@ -155,28 +234,48 @@ const ChallengeModal: React.FC<ChallengeModalProps> = ({ challenge, onClose, onC
           )}
 
           {challenge.isCompleted && !challenge.is_free_space && (
-            <button
-              disabled={!canComplete}
-              onClick={() => onComplete(challenge)}
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                gap: '0.75rem',
-                backgroundColor: 'var(--color-secondary)',
-                color: 'var(--color-white)',
-                padding: '1rem',
-                borderRadius: 'var(--radius-md)',
-                fontSize: '1.1rem',
-                fontWeight: 'bold',
-                marginTop: '1rem',
-                transition: 'all 0.2s',
-                cursor: canComplete ? 'pointer' : 'not-allowed'
-              }}
-            >
-              {canComplete ? <X size={24} /> : <Lock size={20} />}
-              Mark as Incomplete
-            </button>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+              <button
+                disabled={!canComplete}
+                onClick={() => onComplete(challenge)}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '0.75rem',
+                  backgroundColor: canComplete ? 'var(--color-secondary)' : '#D1D5DB',
+                  color: 'var(--color-white)',
+                  padding: '1rem',
+                  borderRadius: 'var(--radius-md)',
+                  fontSize: '1.1rem',
+                  fontWeight: 'bold',
+                  marginTop: '1rem',
+                  transition: 'all 0.2s',
+                  cursor: canComplete ? 'pointer' : 'not-allowed'
+                }}
+              >
+                {canComplete ? <X size={24} /> : <Lock size={20} />}
+                Mark as Incomplete
+              </button>
+
+              {!canComplete && disabledReason && (
+                <div style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.5rem',
+                  color: '#991B1B',
+                  backgroundColor: '#FEF2F2',
+                  padding: '0.75rem',
+                  borderRadius: 'var(--radius-sm)',
+                  fontSize: '0.85rem',
+                  fontWeight: '500',
+                  border: '1px solid #FECACA'
+                }}>
+                  <AlertCircle size={16} />
+                  {disabledReason}
+                </div>
+              )}
+            </div>
           )}
 
           {challenge.isCompleted && challenge.is_free_space && (

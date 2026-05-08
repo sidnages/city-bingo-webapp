@@ -104,10 +104,14 @@ function App() {
         const filteredChallenges = Array.from(uniqueChallengesMap.values());
 
         const myProgress = progressData.filter((p: any) => p.team_id === teamId);
-        const enrichedChallenges = filteredChallenges.map(c => ({
-          ...c,
-          isCompleted: myProgress.some((p: any) => p.challenge_id === c.id) || c.is_free_space
-        }));
+        const enrichedChallenges = filteredChallenges.map(c => {
+          const progress = myProgress.find((p: any) => p.challenge_id === c.id);
+          return {
+            ...c,
+            isCompleted: !!progress || c.is_free_space,
+            instagramUrl: progress?.instagram_url
+          };
+        });
         
         setChallenges(enrichedChallenges);
 
@@ -262,7 +266,7 @@ function App() {
 
   const { canComplete, disabledReason } = getCompletionStatus();
 
-  const handleCompleteChallenge = async (challenge: Challenge) => {
+  const handleCompleteChallenge = async (challenge: Challenge, instagramUrl?: string) => {
     if (!teamId) return;
     try {
       if (challenge.isCompleted) {
@@ -288,7 +292,8 @@ function App() {
           .from('team_progress')
           .insert([{
             team_id: teamId,
-            challenge_id: challenge.id
+            challenge_id: challenge.id,
+            instagram_url: instagramUrl
           }]);
 
         if (error) throw error;
@@ -443,6 +448,7 @@ function App() {
         onComplete={handleCompleteChallenge}
         canComplete={canComplete}
         disabledReason={disabledReason}
+        requireInstagram={game?.require_instagram}
       />
 
       {showScoringModal && game && (

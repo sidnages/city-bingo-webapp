@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { calculateTeamScore } from '../../lib/scoring';
 import { supabase } from '../../lib/supabase';
-import { Users, Play, Square, CheckSquare, Loader2, X, Trophy, AlertTriangle, Eye, Settings, BookOpen } from 'lucide-react';
+import { Users, Play, Square, CheckSquare, Loader2, X, Trophy, AlertTriangle, Eye, Settings, BookOpen, Camera } from 'lucide-react';
 import type { Game, Team, Challenge, TeamProgress } from '../../types/game';
 import { GameForm } from './GameForm';
+import ChallengeModal from './ChallengeModal';
 
 interface AdminDashboardProps {
   gameId: string;
@@ -19,6 +20,8 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ gameId, onSignOu
   const [actionLoading, setActionLoading] = useState(false);
   const [selectedTeam, setSelectedTeam] = useState<Team | null>(null);
   const [isEditingConfig, setIsEditingConfig] = useState(false);
+  const [selectedChallenge, setSelectedChallenge] = useState<Challenge | null>(null);
+  const [, setTick] = useState(0);
 
   const fetchData = async () => {
     try {
@@ -92,6 +95,12 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ gameId, onSignOu
       supabase.removeChannel(progressChannel);
     };
   }, [gameId]);
+
+  // Re-render every second to update team timers
+  useEffect(() => {
+    const interval = setInterval(() => setTick(t => t + 1), 1000);
+    return () => clearInterval(interval);
+  }, []);
 
   if (isEditingConfig && game) {
     return (
@@ -187,7 +196,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ gameId, onSignOu
     }
   };
 
-  const toggleChallenge = async (teamId: string, challengeId: string, isCompleted: boolean) => {
+  const toggleChallenge = async (teamId: string, challengeId: string, isCompleted: boolean, instagramUrl?: string) => {
     if (game?.published_at) {
       alert('You cannot modify progress after scores have been published.');
       return;
@@ -215,7 +224,11 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ gameId, onSignOu
         // Complete
         const { error } = await supabase
           .from('team_progress')
-          .insert([{ team_id: teamId, challenge_id: challengeId }]);
+          .insert([{ 
+            team_id: teamId, 
+            challenge_id: challengeId,
+            instagram_url: instagramUrl 
+          }]);
         if (error) throw error;
       }
 
@@ -225,6 +238,16 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ gameId, onSignOu
       console.error('Error toggling challenge:', error);
       alert(`Error toggling challenge: ${error.message || 'Unknown error'}`);
     }
+  };
+
+  const handleSquareClick = (challenge: Challenge) => {
+    if (!selectedTeam) return;
+    const progress = allProgress.find(p => p.team_id === selectedTeam.id && p.challenge_id === challenge.id);
+    setSelectedChallenge({
+      ...challenge,
+      isCompleted: !!progress || challenge.is_free_space,
+      instagramUrl: progress?.instagram_url
+    });
   };
 
   // Helper to format remaining time
@@ -241,13 +264,6 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ gameId, onSignOu
     const secs = remaining % 60;
     return `${mins}:${secs.toString().padStart(2, '0')}`;
   };
-
-  // Re-render every second to update team timers
-  const [, setTick] = useState(0);
-  useEffect(() => {
-    const interval = setInterval(() => setTick(t => t + 1), 1000);
-    return () => clearInterval(interval);
-  }, []);
 
   if (loading && !game) {
     return (
@@ -473,7 +489,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ gameId, onSignOu
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
               <div>
                 <h3 style={{ fontSize: '1.25rem', fontWeight: '800', color: 'var(--color-primary)' }}>{selectedTeam.name}'s Card</h3>
-                <p style={{ fontSize: '0.875rem', color: '#6B7280' }}>Click a square to toggle completion</p>
+                <p style={{ fontSize: '0.875rem', color: '#6B7280' }}>Click a square to view/manage challenge</p>
               </div>
               <button 
                 onClick={() => setSelectedTeam(null)}
@@ -496,11 +512,12 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ gameId, onSignOu
               boxSizing: 'border-box'
             }}>
               {challenges.map(challenge => {
-                const isCompleted = allProgress.some(p => p.team_id === selectedTeam.id && p.challenge_id === challenge.id) || challenge.is_free_space;
+                const progress = allProgress.find(p => p.team_id === selectedTeam.id && p.challenge_id === challenge.id);
+                const isCompleted = !!progress || challenge.is_free_space;
                 return (
                   <button
                     key={challenge.id}
-                    onClick={() => !challenge.is_free_space && toggleChallenge(selectedTeam.id, challenge.id, isCompleted)}
+                    onClick={() => handleSquareClick(challenge)}
                     style={{
                       aspectRatio: '1/1',
                       display: 'flex',
@@ -515,7 +532,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ gameId, onSignOu
                       fontWeight: 'bold',
                       textAlign: 'center',
                       border: 'none',
-                      cursor: challenge.is_free_space ? 'default' : 'pointer',
+                      cursor: 'pointer',
                       transition: 'all 0.2s',
                       boxShadow: 'inset 0 0 0 1px rgba(0,0,0,0.05)',
                       overflow: 'hidden'
@@ -535,7 +552,12 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ gameId, onSignOu
                         }}>
                           {challenge.title}
                         </div>
-                        {isCompleted ? <CheckSquare size={12} style={{ marginTop: '2px', flexShrink: 0 }} /> : <Square size={12} style={{ marginTop: '2px', opacity: 0.3, flexShrink: 0 }} />}
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '4px', marginTop: '2px' }}>
+                          {isCompleted ? <CheckSquare size={12} style={{ flexShrink: 0 }} /> : <Square size={12} style={{ opacity: 0.3, flexShrink: 0 }} />}
+                          {progress?.instagram_url && (
+                            <Camera size={10} style={{ color: 'white' }} />
+                          )}
+                        </div>
                       </>
                     )}
                   </button>
@@ -579,6 +601,21 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ gameId, onSignOu
           </div>
         )}
       </div>
+
+      {selectedChallenge && selectedTeam && (
+        <ChallengeModal 
+          challenge={selectedChallenge}
+          onClose={() => setSelectedChallenge(null)}
+          onComplete={(_challenge, instagramUrl) => {
+            toggleChallenge(selectedTeam.id, selectedChallenge.id, !!selectedChallenge.isCompleted, instagramUrl);
+            setSelectedChallenge(null);
+          }}
+          canComplete={!!game?.stopped_at && !game?.published_at}
+          disabledReason={game?.published_at ? "Scores are published." : "Game is still in progress."}
+          requireInstagram={game?.require_instagram}
+        />
+      )}
+
       <style>{`
         @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
         .animate-spin { animation: spin 1s linear infinite; }

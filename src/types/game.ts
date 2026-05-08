@@ -6,6 +6,7 @@ export interface Challenge {
   position: number;
   is_free_space: boolean;
   isCompleted?: boolean; // Derived from team_progress
+  instagramUrl?: string; // Derived from team_progress
 }
 
 export interface Team {
@@ -30,6 +31,7 @@ export interface Game {
   points_per_square: number;
   points_per_bingo: number;
   points_per_unique: number;
+  require_instagram: boolean;
   game_rules?: string;
 }
 
@@ -38,4 +40,5 @@ export interface TeamProgress {
   team_id: string;
   challenge_id: string;
   completed_at: string;
+  instagram_url?: string;
 }

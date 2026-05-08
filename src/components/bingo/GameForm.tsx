@@ -22,8 +22,8 @@ export const GameForm: React.FC<GameFormProps> = ({ existingGame, existingChalle
   const [pointsPerUnique, setPointsPerUnique] = useState(existingGame?.points_per_unique || 2);
   const [adminPasscode, setAdminPasscode] = useState(existingGame?.admin_passcode || '');
   const [hasFreeSpace, setHasFreeSpace] = useState(existingChallenges ? existingChallenges.some(c => c.is_free_space) : true);
+  const [requireInstagram, setRequireInstagram] = useState(existingGame?.require_instagram || false);
   const [editingChallengeIndex, setEditingChallengeIndex] = useState<number | null>(null);
-  
   const [challenges, setChallenges] = useState<{title: string, description: string, position: number, is_free_space: boolean}[]>(() => {
     if (existingChallenges && existingChallenges.length > 0) {
       const sorted = [...existingChallenges].sort((a, b) => a.position - b.position);
@@ -109,7 +109,8 @@ export const GameForm: React.FC<GameFormProps> = ({ existingGame, existingChalle
             points_per_square: pointsPerSquare,
             points_per_bingo: pointsPerBingo,
             points_per_unique: pointsPerUnique,
-            game_rules: gameRules
+            game_rules: gameRules,
+            require_instagram: requireInstagram
           })
           .eq('id', existingGame.id);
 
@@ -131,7 +132,8 @@ export const GameForm: React.FC<GameFormProps> = ({ existingGame, existingChalle
             points_per_square: pointsPerSquare,
             points_per_bingo: pointsPerBingo,
             points_per_unique: pointsPerUnique,
-            game_rules: gameRules
+            game_rules: gameRules,
+            require_instagram: requireInstagram
           })
           .select()
           .single();
@@ -315,18 +317,34 @@ export const GameForm: React.FC<GameFormProps> = ({ existingGame, existingChalle
                 />
               </div>
 
-              <div style={{ marginTop: '1.5rem', display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                <input
-                  type="checkbox"
-                  id="hasFreeSpace"
-                  disabled={isReadOnly}
-                  style={{ width: '1.2rem', height: '1.2rem', accentColor: 'var(--color-primary)' }}
-                  checked={hasFreeSpace}
-                  onChange={(e) => setHasFreeSpace(e.target.checked)}
-                />
-                <label htmlFor="hasFreeSpace" style={{ fontSize: '0.875rem', fontWeight: '600', color: 'var(--color-text)' }}>
-                  Include a FREE SPACE in the center (recommended)
-                </label>
+              <div style={{ marginTop: '1.5rem', display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                  <input
+                    type="checkbox"
+                    id="hasFreeSpace"
+                    disabled={isReadOnly}
+                    style={{ width: '1.2rem', height: '1.2rem', accentColor: 'var(--color-primary)' }}
+                    checked={hasFreeSpace}
+                    onChange={(e) => setHasFreeSpace(e.target.checked)}
+                  />
+                  <label htmlFor="hasFreeSpace" style={{ fontSize: '0.875rem', fontWeight: '600', color: 'var(--color-text)' }}>
+                    Include a FREE SPACE in the center (recommended)
+                  </label>
+                </div>
+
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                  <input
+                    type="checkbox"
+                    id="requireInstagram"
+                    disabled={isReadOnly}
+                    style={{ width: '1.2rem', height: '1.2rem', accentColor: 'var(--color-primary)' }}
+                    checked={requireInstagram}
+                    onChange={(e) => setRequireInstagram(e.target.checked)}
+                  />
+                  <label htmlFor="requireInstagram" style={{ fontSize: '0.875rem', fontWeight: '600', color: 'var(--color-text)' }}>
+                    Require Instagram post URL for challenge completion
+                  </label>
+                </div>
               </div>
             </div>
 
