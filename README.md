@@ -26,7 +26,12 @@ City Bingo uses Supabase for database and real-time synchronization.
     ```
     npm install
     ```
-2.  **Run Development Server:**
+2. **Build / Test:**
+    ```
+    npm run build
+    npm test
+    ```
+3.  **Run Development Server:**
     ```
     npm run dev
     ```

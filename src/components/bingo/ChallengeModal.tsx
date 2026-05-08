@@ -136,12 +136,16 @@ const ChallengeModal: React.FC<ChallengeModalProps> = ({
 
           {requireInstagram && !challenge.isCompleted && !challenge.is_free_space && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-              <label style={{ fontSize: '0.875rem', fontWeight: '700', color: 'var(--color-text)' }}>
+              <label 
+                htmlFor="instagram-url"
+                style={{ fontSize: '0.875rem', fontWeight: '700', color: 'var(--color-text)' }}
+              >
                 Instagram Post URL
               </label>
               <div style={{ position: 'relative' }}>
                 <Camera size={18} style={{ position: 'absolute', left: '0.75rem', top: '50%', transform: 'translateY(-50%)', color: '#6B7280' }} />
                 <input
+                  id="instagram-url"
                   type="text"
                   placeholder="https://www.instagram.com/p/..."
                   value={instagramUrl}

@@ -4,7 +4,7 @@ import { supabase } from '../../lib/supabase';
 import { Users, Play, Square, CheckSquare, Loader2, X, Trophy, AlertTriangle, Eye, Settings, BookOpen, Camera } from 'lucide-react';
 import type { Game, Team, Challenge, TeamProgress } from '../../types/game';
 import { GameForm } from './GameForm';
-import ChallengeModal from './ChallengeModal';
+import ChallengeModal from '../bingo/ChallengeModal';
 
 interface AdminDashboardProps {
   gameId: string;

@@ -2,12 +2,12 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import Header from './components/layout/Header';
 import BingoCard from './components/bingo/BingoCard';
 import ChallengeModal from './components/bingo/ChallengeModal';
-import Timer from './components/sidebar/Timer';
-import Leaderboard from './components/sidebar/Leaderboard';
+import Timer from './components/layout/Timer';
+import Leaderboard from './components/layout/Leaderboard';
 import { Auth } from './components/auth/Auth';
 import { BingoCelebration } from './components/bingo/BingoCelebration';
-import { AdminDashboard } from './components/bingo/AdminDashboard';
-import ScoringModal from './components/bingo/ScoringModal';
+import { AdminDashboard } from './components/admin/AdminDashboard';
+import RulesModal from './components/bingo/RulesModal';
 import { supabase } from './lib/supabase';
 import { calculateTeamScore } from './lib/scoring';
 import type { Challenge, Team, Game } from './types/game';
@@ -26,7 +26,7 @@ function App() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [showBingoEffect, setShowBingoEffect] = useState(false);
-  const [showScoringModal, setShowScoringModal] = useState(false);
+  const [showRulesModal, setShowRulesModal] = useState(false);
   const [, setBingoCount] = useState(0);
   const isInitialLoad = useRef(true);
 
@@ -396,7 +396,7 @@ function App() {
 
   return (
     <div style={{ minHeight: '100vh', paddingBottom: '3rem' }}>
-      <Header teamName={currentTeam?.name || 'Loading...'} onSignOut={handleSignOut} onShowRules={() => setShowScoringModal(true)} />
+      <Header teamName={currentTeam?.name || 'Loading...'} onSignOut={handleSignOut} onShowRules={() => setShowRulesModal(true)} />
       
       <main style={{
         maxWidth: '1200px',
@@ -451,9 +451,9 @@ function App() {
         requireInstagram={game?.require_instagram}
       />
 
-      {showScoringModal && game && (
-        <ScoringModal 
-          onClose={() => setShowScoringModal(false)}
+      {showRulesModal && game && (
+        <RulesModal 
+          onClose={() => setShowRulesModal(false)}
           points={{ 
             square: game.points_per_square, 
             bingo: game.points_per_bingo, 

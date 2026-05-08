@@ -1,12 +1,12 @@
 import React from 'react';
 import { X, Info } from 'lucide-react';
 
-interface ScoringModalProps {
+interface RulesModalProps {
   onClose: () => void;
   points: { square: number; bingo: number; unique: number; rules?: string };
 }
 
-const ScoringModal: React.FC<ScoringModalProps> = ({ onClose, points }) => {
+const RulesModal: React.FC<RulesModalProps> = ({ onClose, points }) => {
   return (
     <div style={{
       position: 'fixed',
@@ -87,4 +87,4 @@ const ScoringModal: React.FC<ScoringModalProps> = ({ onClose, points }) => {
   );
 };
 
-export default ScoringModal;
+export default RulesModal;

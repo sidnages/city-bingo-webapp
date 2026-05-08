@@ -32,8 +32,13 @@ const Leaderboard: React.FC<LeaderboardProps> = ({ teams, currentTeamId, gameDur
     
     if (remaining === 0) return 'Time Up';
     
-    const mins = Math.floor(remaining / 60);
+    const hours = Math.floor(remaining / 3600);
+    const mins = Math.floor((remaining % 3600) / 60);
     const secs = remaining % 60;
+
+    if (hours > 0) {
+      return `${hours}:${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+    }
     return `${mins}:${secs.toString().padStart(2, '0')}`;
   };
 

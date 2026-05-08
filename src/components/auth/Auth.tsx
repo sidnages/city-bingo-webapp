@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
-import { supabase } from '../../lib/supabase';
+import { supabase } from '../../../src/lib/supabase';
 import { Loader2, Trophy, Gamepad2, User, PlusCircle, Settings, Lock } from 'lucide-react';
-import { GameForm } from '../bingo/GameForm';
+import { GameForm } from '../admin/GameForm';
 import type { Game, Challenge } from '../../types/game';
 
 interface AuthProps {

@@ -20,5 +20,5 @@
     "noUnusedParameters": true,
     "noFallthroughCasesInSwitch": true
   },
-  "include": ["src"]
+  "include": ["src", "tst/components/bingo/BingoCelebration.test.tsx", "tst/components/admin/GameForm.test.tsx", "tst/components/layout/Leaderboard.test.tsx", "tst/components/layout/Timer.test.tsx", "tst/mock-css.ts", "tst/setup.ts"]
 }
