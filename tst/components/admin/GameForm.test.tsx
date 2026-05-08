@@ -101,7 +101,7 @@ describe('GameForm', () => {
     const onSuccess = vi.fn();
     const mockGame = { id: 'game-1', game_code: 'NEW123' };
 
-    (supabase.from as any).mockImplementation((table: string) => {
+    (supabase.from as any).mockImplementation((_: string) => {
         return {
           insert: vi.fn().mockReturnThis(),
           select: vi.fn().mockReturnThis(),
@@ -138,7 +138,7 @@ describe('GameForm', () => {
       duration_seconds: 3600,
       admin_passcode: '1234'
     };
-    (supabase.from as any).mockImplementation((table: string) => {
+    (supabase.from as any).mockImplementation((_: string) => {
         return {
           update: vi.fn().mockReturnThis(),
           eq: vi.fn().mockResolvedValue({ error: null }),
