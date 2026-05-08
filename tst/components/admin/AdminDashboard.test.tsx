@@ -71,6 +71,7 @@ const createMockSupabaseResponse = (data: any = [], error: any = null) => {
 describe('AdminDashboard', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    vi.stubGlobal('confirm', vi.fn());
     
     // Default mock implementation for fetching data
     (supabase.from as any).mockImplementation((table: string) => {
@@ -105,6 +106,9 @@ describe('AdminDashboard', () => {
     
     const startButton = await screen.findByText('START GAME');
     fireEvent.click(startButton);
+
+    // Check that a confirmation window opens when the button is clicked
+    expect(window.confirm).toHaveBeenCalled();
     
     await waitFor(() => {
       expect(updateResponse.update).toHaveBeenCalledWith(expect.objectContaining({
@@ -186,6 +190,9 @@ describe('AdminDashboard', () => {
     // Remove the team
     const removeButton = await screen.findByText('Remove Team');
     fireEvent.click(removeButton);
+
+    // Check that a confirmation window opens when the team is removed
+    expect(window.confirm).toHaveBeenCalled();
     
     await waitFor(() => {
       expect(teamsResponse.delete).toHaveBeenCalled();
@@ -236,8 +243,12 @@ describe('AdminDashboard', () => {
     fireEvent.click(square);
     
     // Check if modal is open and button is ENABLED (since game is stopped)
-    await screen.findByText('Mark as Complete');
+    const completeButton = await screen.findByText('Mark as Complete');
     expect(screen.getByText('Mark as Complete')).not.toBeDisabled();
+
+    // Check that a confirmation window opens when the board state is changed
+    fireEvent.click(completeButton);
+    expect(window.confirm).toHaveBeenCalled();
   });
 
   it('shows ChallengeModal as disabled when game is still in progress', async () => {
