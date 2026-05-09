@@ -75,6 +75,9 @@ As a participant, you will use the webapp to track your team's progress during t
     *   Once the admin has started the overall run, you can hit the **Start Run** button whenever you are ready to start.
     *   Keep an eye on the countdown! Once the time is up, you will no longer be able to mark challenges as complete.
     *   Alternatively, if the admin chooses to globally stop the game, your timer will automatically run out.
+7.  **Bonus Challenges:**
+    * If the game is configured to have bonus challenges, they will show up in the sidebar.
+    * These challenges are released partway into the game and have a set time limit to complete, so be on the lookout!
 
 ---
 
@@ -86,6 +89,7 @@ As an organizer, you use create games and use the Admin Dashboard to manage the 
     *   **Game Settings:** Set the name, time limit (in minutes), and optional rules.
     *   **Scoring:** Configure points awarded for each square, for completing a Bingo (row, column, or diagonal), and for being the only team to complete a challenge.
     *   **Require Instagram:** Enable this to mandate that teams provide proof via Instagram for every challenge.
+    *   **Bonus Challenges:** You can add optional bonus challenges that are released a set amount of time after the start of a run. Each challenge can configure its own start delay, time limit for completion, and number of points.
     *   **Bingo Board:** Click squares to define titles and descriptions. You can toggle a "FREE SPACE" in the center.
     *   To prevent random people from creating a game, you will be prompted for a "secret" when trying to create the game. Message the website creator for the secret.
     *   When you finish creating a game, REMEMBER the 6-character **Game ID** AND your inputted 4-digit **Admin Passcode**.

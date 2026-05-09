@@ -5,10 +5,11 @@ import type { BonusChallenge } from '../../types/game';
 interface BonusChallengesProps {
   challenges: BonusChallenge[];
   teamStartedAt: string | null;
+  isGameStopped: boolean;
   onChallengeClick: (challenge: BonusChallenge) => void;
 }
 
-const BonusChallenges: React.FC<BonusChallengesProps> = ({ challenges, teamStartedAt, onChallengeClick }) => {
+const BonusChallenges: React.FC<BonusChallengesProps> = ({ challenges, teamStartedAt, isGameStopped, onChallengeClick }) => {
   const [, setTick] = useState(0);
 
   useEffect(() => {
@@ -34,9 +35,9 @@ const BonusChallenges: React.FC<BonusChallengesProps> = ({ challenges, teamStart
       const liveAtSeconds = c.release_at_minutes * 60;
       const endAtSeconds = (c.release_at_minutes + c.duration_minutes) * 60;
 
-      if (elapsedSeconds < liveAtSeconds) {
+      if (elapsedSeconds < liveAtSeconds && !isGameStopped) {
         acc.upcoming.push({ ...c, startsInSeconds: liveAtSeconds - elapsedSeconds });
-      } else if (elapsedSeconds < endAtSeconds) {
+      } else if (elapsedSeconds < endAtSeconds && !isGameStopped) {
         acc.active.push({ ...c, endsInSeconds: endAtSeconds - elapsedSeconds });
       } else if (c.isCompleted) {
         acc.completed.push(c);

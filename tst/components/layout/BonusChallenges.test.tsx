@@ -36,6 +36,7 @@ describe('BonusChallenges', () => {
       <BonusChallenges 
         challenges={[]} 
         teamStartedAt={new Date().toISOString()} 
+        isGameStopped={false}
         onChallengeClick={() => {}} 
       />
     );
@@ -47,6 +48,7 @@ describe('BonusChallenges', () => {
       <BonusChallenges 
         challenges={mockChallenges} 
         teamStartedAt={null} 
+        isGameStopped={false}
         onChallengeClick={() => {}} 
       />
     );
@@ -61,6 +63,7 @@ describe('BonusChallenges', () => {
       <BonusChallenges 
         challenges={mockChallenges} 
         teamStartedAt={startedAt} 
+        isGameStopped={false}
         onChallengeClick={() => {}} 
       />
     );
@@ -82,6 +85,7 @@ describe('BonusChallenges', () => {
       <BonusChallenges 
         challenges={mockChallenges} 
         teamStartedAt={startedAt} 
+        isGameStopped={false}
         onChallengeClick={onChallengeClick} 
       />
     );
@@ -97,12 +101,29 @@ describe('BonusChallenges', () => {
     render(
       <BonusChallenges 
         challenges={mockChallenges} 
-        teamStartedAt={startedAt} 
+        teamStartedAt={startedAt}
+        isGameStopped={false} 
         onChallengeClick={() => {}} 
       />
     );
 
     expect(screen.getByText('Expired')).toBeInTheDocument();
+  });
+
+  it('marks challenges as expired when game is done, even if time isnt up', () => {
+    // Team started 15 minutes ago. Active Bonus (0-10m) should be expired.
+    const startedAt = new Date(Date.now()).toISOString();
+
+    render(
+      <BonusChallenges 
+        challenges={mockChallenges} 
+        teamStartedAt={startedAt}
+        isGameStopped={true} 
+        onChallengeClick={() => {}} 
+      />
+    );
+
+    expect(screen.getAllByText('Expired')).toHaveLength(2);
   });
 
   it('displays completed state correctly even while active', () => {
@@ -114,7 +135,8 @@ describe('BonusChallenges', () => {
     render(
       <BonusChallenges 
         challenges={completedChallenges} 
-        teamStartedAt={startedAt} 
+        teamStartedAt={startedAt}
+        isGameStopped={false} 
         onChallengeClick={() => {}} 
       />
     );
@@ -134,7 +156,8 @@ describe('BonusChallenges', () => {
     render(
       <BonusChallenges 
         challenges={completedChallenges} 
-        teamStartedAt={startedAt} 
+        teamStartedAt={startedAt}
+        isGameStopped={false} 
         onChallengeClick={() => {}} 
       />
     );

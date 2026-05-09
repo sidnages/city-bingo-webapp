@@ -16,10 +16,10 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ gameId, onSignOu
   const [game, setGame] = useState<Game | null>(null);
   const [teams, setTeams] = useState<Team[]>([]);
   const [challenges, setChallenges] = useState<Challenge[]>([]);
-  const [bonusChallenges, setBonusChallenges] = useState<BonusChallenge[]>([]);
+  const [bonusChallenges, setBonusChallenges] = useState<any[]>([]);
   const [allProgress, setAllProgress] = useState<TeamProgress[]>([]);
   const [allBonusProgress, setAllBonusProgress] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState(false);
   const [selectedTeam, setSelectedTeam] = useState<Team | null>(null);
   const [isEditingConfig, setIsEditingConfig] = useState(false);
@@ -360,8 +360,8 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ gameId, onSignOu
               <button onClick={() => setSelectedTeam(null)} style={{ padding: '0.5rem', borderRadius: '50%', backgroundColor: '#F3F4F6' }}><X size={20} /></button>
             </div>
 
-            <div style={{ display: 'flex', flexDirection: window.innerWidth < 1024 ? 'column' : 'row', gap: '2rem' }}>
-              <div style={{ flex: '0 0 auto', width: '100%', maxWidth: '300px' }}>
+            <div style={{ display: 'flex', flexDirection: window.innerWidth < 1024 ? 'column' : 'row', gap: '2rem', flexWrap: 'wrap' }}>
+              <div style={{ flex: '1 1 auto', minWidth: '300px', maxWidth: '400px' }}>
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '0.4rem', backgroundColor: 'var(--color-bg-dark)', padding: '0.5rem', borderRadius: 'var(--radius-md)', marginBottom: '1rem', width: '100%' }}>
                   {challenges.map(challenge => {
                     const progress = allProgress.find(p => p.team_id === selectedTeam.id && p.challenge_id === challenge.id);
@@ -384,16 +384,19 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ gameId, onSignOu
                 {!game?.started_at && <button onClick={() => handleRemoveTeam(selectedTeam.id)} style={{ width: '100%', padding: '0.75rem', backgroundColor: '#FEE2E2', color: '#B91C1C', borderRadius: 'var(--radius-md)', fontWeight: 'bold', border: '1px solid #FECACA', marginTop: '0.5rem' }}>Remove Team</button>}
               </div>
 
-              <div style={{ flex: '1', minWidth: '300px' }}>
-                <BonusChallenges 
-                  challenges={bonusChallenges.map(bc => ({ ...bc, isCompleted: allBonusProgress.some(bp => bp.team_id === selectedTeam.id && bp.bonus_challenge_id === bc.id) }))}
-                  teamStartedAt={selectedTeam.started_at || null}
-                  onChallengeClick={(bc) => {
-                    const progress = allBonusProgress.find(p => p.team_id === selectedTeam.id && p.bonus_challenge_id === bc.id);
-                    setSelectedChallenge({ id: bc.id, title: bc.title, description: bc.description, game_id: bc.game_id, position: -1, is_free_space: false, isCompleted: !!progress });
-                  }}
-                />
-              </div>
+              {bonusChallenges.length > 0 && (
+                <div style={{ flex: '1 1 auto', minWidth: '300px' }}>
+                  <BonusChallenges 
+                    challenges={bonusChallenges.map(bc => ({ ...bc, isCompleted: allBonusProgress.some(bp => bp.team_id === selectedTeam.id && bp.bonus_challenge_id === bc.id) }))}
+                    teamStartedAt={selectedTeam.started_at || null}
+                    isGameStopped={!!game?.stopped_at}
+                    onChallengeClick={(bc) => {
+                      const progress = allBonusProgress.find(p => p.team_id === selectedTeam.id && p.bonus_challenge_id === bc.id);
+                      setSelectedChallenge({ id: bc.id, title: bc.title, description: bc.description, game_id: bc.game_id, position: -1, is_free_space: false, isCompleted: !!progress });
+                    }}
+                  />
+                </div>
+              )}
             </div>
           </div>
         ) : (

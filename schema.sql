@@ -8,6 +8,8 @@ DROP TABLE IF EXISTS players CASCADE;
 DROP TABLE IF EXISTS teams CASCADE;
 DROP TABLE IF EXISTS challenges CASCADE;
 DROP TABLE IF EXISTS games CASCADE;
+DROP TABLE IF EXISTS bonus_challenges CASCADE;
+DROP TABLE IF EXISTS bonus_team_progress CASCADE;
 
 -- 1. Create Tables
 
@@ -61,10 +63,33 @@ CREATE TABLE team_progress (
     UNIQUE(team_id, challenge_id)
 );
 
+-- Bonus Challenges table
+CREATE TABLE bonus_challenges (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    game_id UUID REFERENCES games(id) ON DELETE CASCADE,
+    title TEXT NOT NULL,
+    description TEXT NOT NULL,
+    release_at_minutes INTEGER NOT NULL,
+    duration_minutes INTEGER NOT NULL,
+    points INTEGER NOT NULL DEFAULT 5,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- Bonus Team Progress table
+CREATE TABLE bonus_team_progress (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    team_id UUID REFERENCES teams(id) ON DELETE CASCADE,
+    bonus_challenge_id UUID REFERENCES bonus_challenges(id) ON DELETE CASCADE,
+    completed_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    UNIQUE(team_id, bonus_challenge_id)
+);
+
 -- 2. Enable Real-time
 BEGIN;
   ALTER PUBLICATION supabase_realtime ADD TABLE team_progress;
   ALTER PUBLICATION supabase_realtime ADD TABLE teams;
+  ALTER PUBLICATION supabase_realtime ADD TABLE bonus_challenges;
+  ALTER PUBLICATION supabase_realtime ADD TABLE bonus_team_progress;
 COMMIT;
 
 -- 3. Enable RLS and Add Policies
@@ -72,6 +97,8 @@ ALTER TABLE games ENABLE ROW LEVEL SECURITY;
 ALTER TABLE challenges ENABLE ROW LEVEL SECURITY;
 ALTER TABLE teams ENABLE ROW LEVEL SECURITY;
 ALTER TABLE team_progress ENABLE ROW LEVEL SECURITY;
+ALTER TABLE bonus_challenges ENABLE ROW LEVEL SECURITY;
+ALTER TABLE bonus_team_progress ENABLE ROW LEVEL SECURITY;
 
 -- Games Policies
 CREATE POLICY "Allow public read games" ON games FOR SELECT USING (true);
@@ -93,6 +120,16 @@ CREATE POLICY "Allow public delete teams" ON teams FOR DELETE USING (true);
 CREATE POLICY "Allow public read team_progress" ON team_progress FOR SELECT USING (true);
 CREATE POLICY "Allow public insert team_progress" ON team_progress FOR INSERT WITH CHECK (true);
 CREATE POLICY "Allow public delete team_progress" ON team_progress FOR DELETE USING (true);
+
+-- Bonus Challenges Policies
+CREATE POLICY "Allow public read bonus_challenges" ON bonus_challenges FOR SELECT USING (true);
+CREATE POLICY "Allow public insert bonus_challenges" ON bonus_challenges FOR INSERT WITH CHECK (true);
+CREATE POLICY "Allow public delete bonus_challenges" ON bonus_challenges FOR DELETE USING (true);
+
+-- Bonus Team Progress Policies
+CREATE POLICY "Allow public read bonus_team_progress" ON bonus_team_progress FOR SELECT USING (true);
+CREATE POLICY "Allow public insert bonus_team_progress" ON bonus_team_progress FOR INSERT WITH CHECK (true);
+CREATE POLICY "Allow public delete bonus_team_progress" ON bonus_team_progress FOR DELETE USING (true);
 
 -- 4. Sample Data (Optional)
 

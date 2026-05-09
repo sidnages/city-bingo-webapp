@@ -28,7 +28,7 @@ function App() {
   const [isMobile, setIsMobile] = useState(window.innerWidth < 1024);
 
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const [, setError] = useState<string | null>(null);
   const [showBingoEffect, setShowBingoEffect] = useState(false);
   const [showRulesModal, setShowRulesModal] = useState(false);
   const [, setBingoCount] = useState(0);
@@ -303,7 +303,7 @@ function App() {
     // Final check for expiry before submitting
     const startTime = currentTeam?.started_at ? new Date(currentTeam.started_at).getTime() : 0;
     const elapsedMinutes = (Date.now() - startTime) / 60000;
-    const isExpired = elapsedMinutes >= (bonusChallenge.release_at_minutes + bonusChallenge.duration_minutes);
+    const isExpired = elapsedMinutes >= (bonusChallenge.release_at_minutes + bonusChallenge.duration_minutes) || !!game?.stopped_at;
 
     if (isExpired && !bonusChallenge.isCompleted) {
       alert("This bonus challenge has just expired and can no longer be completed.");
@@ -387,6 +387,7 @@ function App() {
           <BonusChallenges 
             challenges={bonusChallenges}
             teamStartedAt={currentTeam?.started_at || null}
+            isGameStopped={!!game?.stopped_at}
             onChallengeClick={handleBonusClick}
           />
 
@@ -433,7 +434,7 @@ function App() {
             // Check if expired
             const startTime = currentTeam?.started_at ? new Date(currentTeam.started_at).getTime() : 0;
             const elapsedMinutes = (Date.now() - startTime) / 60000;
-            const isExpired = elapsedMinutes >= (selectedBonusChallenge.release_at_minutes + selectedBonusChallenge.duration_minutes);
+            const isExpired = elapsedMinutes >= (selectedBonusChallenge.release_at_minutes + selectedBonusChallenge.duration_minutes) || !!game?.stopped_at;
             
             return !isExpired;
           })()}
@@ -445,7 +446,7 @@ function App() {
             // Check if expired
             const startTime = currentTeam?.started_at ? new Date(currentTeam.started_at).getTime() : 0;
             const elapsedMinutes = (Date.now() - startTime) / 60000;
-            const isExpired = elapsedMinutes >= (selectedBonusChallenge.release_at_minutes + selectedBonusChallenge.duration_minutes);
+            const isExpired = elapsedMinutes >= (selectedBonusChallenge.release_at_minutes + selectedBonusChallenge.duration_minutes) || !!game?.stopped_at;
             
             if (isExpired) return "This bonus challenge has expired.";
             
