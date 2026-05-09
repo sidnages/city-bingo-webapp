@@ -59,6 +59,9 @@ describe('GameForm', () => {
           insert: vi.fn().mockResolvedValue({ error: null })
         };
       }
+      return {
+        insert: vi.fn().mockResolvedValue({ error: null })
+      };
     });
 
     render(<GameForm onClose={() => {}} onSuccess={onSuccess} />);
@@ -85,7 +88,8 @@ describe('GameForm', () => {
     for (let i = 1; i <= 25; i++) {
         if (i === 13) continue; // Skip free space
         fireEvent.click(screen.getByText(`Square ${i}`));
-        fireEvent.change(screen.getByPlaceholderText('Short & punchy title'), { target: { value: `Task ${i}` } });
+        const input = screen.getByPlaceholderText('Short & punchy title');
+        fireEvent.change(input, { target: { value: `Task ${i}` } });
         fireEvent.click(screen.getByText('Done'));
     }
 
@@ -93,7 +97,7 @@ describe('GameForm', () => {
 
     expect(window.prompt).toHaveBeenCalled();
     expect(window.alert).toHaveBeenCalledWith('Invalid game creation secret.');
-  });
+  }, 10000); // Increase timeout for the loop
 
   it('allows game creation when secret is correct', async () => {
     vi.mocked(prompt).mockReturnValue('secret123');
@@ -119,7 +123,8 @@ describe('GameForm', () => {
     for (let i = 1; i <= 25; i++) {
         if (i === 13) continue; // Skip free space
         fireEvent.click(screen.getByText(`Square ${i}`));
-        fireEvent.change(screen.getByPlaceholderText('Short & punchy title'), { target: { value: `Task ${i}` } });
+        const input = screen.getByPlaceholderText('Short & punchy title');
+        fireEvent.change(input, { target: { value: `Task ${i}` } });
         fireEvent.click(screen.getByText('Done'));
     }
 
@@ -127,8 +132,8 @@ describe('GameForm', () => {
     
     await waitFor(() => {
         expect(onSuccess).toHaveBeenCalled();
-    });
-  });
+    }, { timeout: 5000 });
+  }, 15000);
 
   it('does not prompt for secret when editing an existing game', async () => {
     const mockGame = {

@@ -8,9 +8,10 @@ interface LeaderboardProps {
   gameDurationSeconds: number;
   gameStoppedAt: string | null;
   isPublished?: boolean;
+  compact?: boolean;
 }
 
-const Leaderboard: React.FC<LeaderboardProps> = ({ teams, currentTeamId, gameDurationSeconds, gameStoppedAt, isPublished }) => {
+const Leaderboard: React.FC<LeaderboardProps> = ({ teams, currentTeamId, gameDurationSeconds, gameStoppedAt, isPublished, compact }) => {
   const sortedTeams = [...teams].sort((a, b) => b.score - a.score);
 
   const getTeamStatus = (team: Team) => {
@@ -52,29 +53,30 @@ const Leaderboard: React.FC<LeaderboardProps> = ({ teams, currentTeamId, gameDur
   return (
     <div style={{
       backgroundColor: 'var(--color-white)',
-      padding: '1.5rem',
+      padding: '1rem',
       borderRadius: 'var(--radius-lg)',
       width: '100%',
-      minWidth: '280px'
+      minWidth: '280px',
+      boxSizing: 'border-box'
     }} className="fun-shadow">
       <div style={{
         display: 'flex',
         alignItems: 'center',
-        gap: '0.75rem',
-        marginBottom: '1.5rem',
+        gap: '0.5rem',
+        marginBottom: '0.75rem',
         color: 'var(--color-accent)',
         fontWeight: 'bold',
-        fontSize: '1.15rem'
+        fontSize: '0.9rem'
       }}>
-        <Trophy size={24} />
-        <h2>{isPublished ? 'Final Leaderboard' : 'Leaderboard'}</h2>
+        <Trophy size={18} />
+        <h2 style={{ margin: 0 }}>{isPublished ? 'Final Leaderboard' : 'Leaderboard'}</h2>
       </div>
 
       <div style={{ 
         display: 'flex', 
         flexDirection: 'column', 
-        gap: '0.75rem',
-        maxHeight: '320px',
+        gap: '0.5rem',
+        maxHeight: compact ? '180px' : '300px', 
         overflowY: 'auto',
         paddingRight: '4px'
       }} className="custom-scrollbar">
@@ -87,28 +89,28 @@ const Leaderboard: React.FC<LeaderboardProps> = ({ teams, currentTeamId, gameDur
                 display: 'flex',
                 justifyContent: 'space-between',
                 alignItems: 'center',
-                padding: '0.75rem 1rem',
+                padding: '0.5rem 0.75rem',
                 backgroundColor: team.id === currentTeamId ? 'rgba(255, 140, 66, 0.1)' : 'var(--color-bg)',
                 borderRadius: 'var(--radius-md)',
                 borderLeft: team.id === currentTeamId ? '4px solid var(--color-primary)' : 'none',
                 opacity: status === 'finished' ? 0.8 : 1
               }}
             >
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.15rem' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
                   <span style={{ 
-                    fontSize: '0.7rem',
+                    fontSize: '0.65rem',
                     fontWeight: 'bold',
                     color: index === 0 ? '#B8860B' : '#6B7280'
                   }}>
                     #{index + 1}
                   </span>
-                  <span style={{ fontWeight: team.id === currentTeamId ? 'bold' : '600', fontSize: '0.9rem' }}>
+                  <span style={{ fontWeight: team.id === currentTeamId ? 'bold' : '600', fontSize: '0.85rem' }}>
                     {team.name}
                   </span>
                 </div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.75rem' }}>
-                  <TimerIcon size={12} color={status === 'running' ? 'var(--color-primary)' : '#9CA3AF'} />
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.3rem', fontSize: '0.7rem' }}>
+                  <TimerIcon size={10} color={status === 'running' ? 'var(--color-primary)' : '#9CA3AF'} />
                   <span style={{ 
                     color: status === 'running' ? 'var(--color-primary)' : (status === 'finished' ? 'var(--color-secondary)' : '#9CA3AF'),
                     fontWeight: status === 'running' ? 'bold' : '500'
@@ -122,17 +124,22 @@ const Leaderboard: React.FC<LeaderboardProps> = ({ teams, currentTeamId, gameDur
                 <div style={{ 
                   fontWeight: '800', 
                   color: 'var(--color-secondary)',
-                  fontSize: '1.25rem',
+                  fontSize: '1.1rem',
                   lineHeight: 1
                 }}>
                   {team.score}
                 </div>
-                <div style={{ fontSize: '0.65rem', color: '#9CA3AF', fontWeight: 'bold' }}>{isPublished ? 'SCORE' : 'SQUARES'}</div>
+                <div style={{ fontSize: '0.6rem', color: '#9CA3AF', fontWeight: 'bold' }}>{isPublished ? 'SCORE' : 'SQUARES'}</div>
               </div>
             </div>
           );
         })}
       </div>
+      <style>{`
+        .custom-scrollbar::-webkit-scrollbar { width: 4px; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: #f1f1f1; border-radius: 10px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: var(--color-accent); border-radius: 10px; opacity: 0.5; }
+      `}</style>
     </div>
   );
 };

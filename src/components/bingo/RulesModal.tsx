@@ -4,9 +4,10 @@ import { X, Info } from 'lucide-react';
 interface RulesModalProps {
   onClose: () => void;
   points: { square: number; bingo: number; unique: number; rules?: string };
+  hasBonuses?: boolean;
 }
 
-const RulesModal: React.FC<RulesModalProps> = ({ onClose, points }) => {
+const RulesModal: React.FC<RulesModalProps> = ({ onClose, points, hasBonuses }) => {
   return (
     <div style={{
       position: 'fixed',
@@ -66,6 +67,18 @@ const RulesModal: React.FC<RulesModalProps> = ({ onClose, points }) => {
             <li><strong>{points.square} point(s)</strong> per completed challenge square</li>
             <li><strong>{points.bingo} point(s)</strong> bonus for every Bingo</li>
             <li><strong>{points.unique} point(s)</strong> bonus for every unique challenge (completed only by your team)</li>
+            {hasBonuses && (
+              <li style={{ 
+                marginTop: '0.25rem', 
+                paddingTop: '0.75rem', 
+                borderTop: '1px dashed #E5E7EB',
+                fontSize: '0.9rem',
+                color: '#4B5563',
+                fontStyle: 'italic'
+              }}>
+                Bonus challenges are worth the number of points specified
+              </li>
+            )}
           </ul>
         </div>
         <button 

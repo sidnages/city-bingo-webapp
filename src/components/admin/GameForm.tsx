@@ -1,17 +1,18 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../../lib/supabase';
-import { Loader2, Save, X, Info, Edit3, Lock } from 'lucide-react';
-import type { Game, Challenge } from '../../types/game';
+import { Loader2, Save, X, Info, Edit3, Lock, Trash2, Plus, Zap } from 'lucide-react';
+import type { Game, Challenge, BonusChallenge } from '../../types/game';
 
 interface GameFormProps {
   existingGame?: Game;
   existingChallenges?: Challenge[];
+  existingBonusChallenges?: BonusChallenge[];
   isReadOnly?: boolean;
   onClose: () => void;
   onSuccess: (gameCode: string) => void;
 }
 
-export const GameForm: React.FC<GameFormProps> = ({ existingGame, existingChallenges, isReadOnly, onClose, onSuccess }) => {
+export const GameForm: React.FC<GameFormProps> = ({ existingGame, existingChallenges, existingBonusChallenges, isReadOnly, onClose, onSuccess }) => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [gameName, setGameName] = useState(existingGame?.name || '');
@@ -43,6 +44,19 @@ export const GameForm: React.FC<GameFormProps> = ({ existingGame, existingChalle
     }));
   });
 
+  const [bonusChallenges, setBonusChallenges] = useState<{title: string, description: string, release_at_minutes: number, duration_minutes: number, points: number}[]>(() => {
+    if (existingBonusChallenges && existingBonusChallenges.length > 0) {
+      return existingBonusChallenges.map(bc => ({
+        title: bc.title,
+        description: bc.description,
+        release_at_minutes: bc.release_at_minutes,
+        duration_minutes: bc.duration_minutes,
+        points: bc.points
+      }));
+    }
+    return [];
+  });
+
   useEffect(() => {
     if (isReadOnly) return;
     setChallenges(prev => {
@@ -71,6 +85,23 @@ export const GameForm: React.FC<GameFormProps> = ({ existingGame, existingChalle
     const newChallenges = [...challenges];
     newChallenges[index] = { ...newChallenges[index], [field]: value };
     setChallenges(newChallenges);
+  };
+
+  const handleAddBonus = () => {
+    if (bonusChallenges.length >= 5 || isReadOnly) return;
+    setBonusChallenges([...bonusChallenges, { title: '', description: '', release_at_minutes: 0, duration_minutes: 15, points: 5 }]);
+  };
+
+  const handleRemoveBonus = (index: number) => {
+    if (isReadOnly) return;
+    setBonusChallenges(bonusChallenges.filter((_, i) => i !== index));
+  };
+
+  const handleBonusChange = (index: number, field: string, value: any) => {
+    if (isReadOnly) return;
+    const newBonus = [...bonusChallenges];
+    newBonus[index] = { ...newBonus[index], [field]: value };
+    setBonusChallenges(newBonus);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -127,12 +158,9 @@ export const GameForm: React.FC<GameFormProps> = ({ existingGame, existingChalle
 
         if (gameError) throw gameError;
 
-        const { error: deleteError } = await supabase
-          .from('challenges')
-          .delete()
-          .eq('game_id', existingGame.id);
-        
-        if (deleteError) throw deleteError;
+        // Delete existing challenges and bonus challenges to re-insert
+        await supabase.from('challenges').delete().eq('game_id', existingGame.id);
+        await supabase.from('bonus_challenges').delete().eq('game_id', existingGame.id);
       } else {
         const { data: newGame, error: gameError } = await supabase
           .from('games')
@@ -164,6 +192,18 @@ export const GameForm: React.FC<GameFormProps> = ({ existingGame, existingChalle
         .insert(challengesToInsert);
 
       if (challengesError) throw challengesError;
+
+      // Insert Bonus Challenges
+      if (bonusChallenges.length > 0) {
+        const bonusToInsert = bonusChallenges.map(bc => ({
+          ...bc,
+          game_id: gameId
+        }));
+        const { error: bonusError } = await supabase
+          .from('bonus_challenges')
+          .insert(bonusToInsert);
+        if (bonusError) throw bonusError;
+      }
 
       onSuccess(gameCode!);
     } catch (err: any) {
@@ -405,6 +445,126 @@ export const GameForm: React.FC<GameFormProps> = ({ existingGame, existingChalle
                   />
                 </div>
               </div>
+            </div>
+
+            <div style={{ 
+              backgroundColor: 'white', 
+              padding: '1.5rem', 
+              borderRadius: 'var(--radius-md)', 
+              boxShadow: 'var(--shadow-sm)',
+              marginBottom: '2rem'
+            }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                  <Zap size={20} color="var(--color-primary)" />
+                  <h3 style={{ fontSize: '1rem', fontWeight: '800', color: isReadOnly ? '#4B5563' : 'var(--color-secondary)' }}>Bonus Challenges (Max 5)</h3>
+                </div>
+                {!isReadOnly && bonusChallenges.length < 5 && (
+                  <button
+                    type="button"
+                    onClick={handleAddBonus}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '0.4rem',
+                      fontSize: '0.8rem',
+                      fontWeight: 'bold',
+                      color: 'var(--color-primary)',
+                      padding: '4px 8px',
+                      borderRadius: '4px',
+                      border: '1px solid var(--color-primary)',
+                      background: 'transparent'
+                    }}
+                  >
+                    <Plus size={14} /> Add Bonus
+                  </button>
+                )}
+              </div>
+
+              {bonusChallenges.length === 0 ? (
+                <p style={{ textAlign: 'center', color: '#9CA3AF', fontSize: '0.875rem', padding: '1rem' }}>No bonus challenges configured.</p>
+              ) : (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+                  {bonusChallenges.map((bc, i) => (
+                    <div key={i} style={{ 
+                      padding: '1rem', 
+                      borderRadius: 'var(--radius-sm)', 
+                      border: '1px solid #E5E7EB',
+                      backgroundColor: '#F9FAFB',
+                      position: 'relative'
+                    }}>
+                      {!isReadOnly && (
+                        <button
+                          type="button"
+                          onClick={() => handleRemoveBonus(i)}
+                          style={{ position: 'absolute', top: '0.5rem', right: '0.5rem', color: '#EF4444', padding: '4px', border: 'none', background: 'transparent' }}
+                        >
+                          <Trash2 size={16} />
+                        </button>
+                      )}
+                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem', marginBottom: '1rem' }}>
+                        <div style={{ display: 'flex', flexDirection: 'column' }}>
+                          <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: '700', color: '#6B7280', marginBottom: '0.3rem' }}>Title</label>
+                          <input
+                            type="text"
+                            required
+                            readOnly={isReadOnly}
+                            style={{ ...inputStyle, marginTop: 'auto' }}
+                            value={bc.title}
+                            onChange={(e) => handleBonusChange(i, 'title', e.target.value)}
+                            placeholder="Bonus Title"
+                          />
+                        </div>
+                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '0.5rem' }}>
+                          <div style={{ display: 'flex', flexDirection: 'column' }}>
+                            <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: '700', color: '#6B7280', marginBottom: '0.3rem' }}>Start Delay (min)</label>
+                            <input
+                              type="number"
+                              required
+                              readOnly={isReadOnly}
+                              style={{ ...inputStyle, marginTop: 'auto' }}
+                              value={bc.release_at_minutes}
+                              onChange={(e) => handleBonusChange(i, 'release_at_minutes', parseInt(e.target.value))}
+                            />
+                          </div>
+                          <div style={{ display: 'flex', flexDirection: 'column' }}>
+                            <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: '700', color: '#6B7280', marginBottom: '0.3rem' }}>Duration (min)</label>
+                            <input
+                              type="number"
+                              required
+                              readOnly={isReadOnly}
+                              style={{ ...inputStyle, marginTop: 'auto' }}
+                              value={bc.duration_minutes}
+                              onChange={(e) => handleBonusChange(i, 'duration_minutes', parseInt(e.target.value))}
+                            />
+                          </div>
+                          <div style={{ display: 'flex', flexDirection: 'column' }}>
+                            <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: '700', color: '#6B7280', marginBottom: '0.3rem' }}>Points</label>
+                            <input
+                              type="number"
+                              required
+                              readOnly={isReadOnly}
+                              style={{ ...inputStyle, marginTop: 'auto' }}
+                              value={bc.points}
+                              onChange={(e) => handleBonusChange(i, 'points', parseInt(e.target.value))}
+                            />
+                          </div>
+                        </div>
+                      </div>
+                      <div>
+                        <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: '700', color: '#6B7280', marginBottom: '0.3rem' }}>Description</label>
+                        <textarea
+                          readOnly={isReadOnly}
+                          style={{ ...inputStyle, minHeight: '60px' }}
+                          value={bc.description}
+                          onChange={(e) => handleBonusChange(i, 'description', e.target.value)}
+                          placeholder="What should they do?"
+                        />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
 
             <div style={{ textAlign: 'center', marginBottom: '1.5rem' }}>

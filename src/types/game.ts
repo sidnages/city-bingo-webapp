@@ -42,3 +42,21 @@ export interface TeamProgress {
   completed_at: string;
   instagram_url?: string;
 }
+
+export interface BonusChallenge {
+  id: string;
+  game_id: string;
+  title: string;
+  description: string;
+  release_at_minutes: number;
+  duration_minutes: number;
+  points: number;
+  isCompleted?: boolean;
+}
+
+export interface BonusTeamProgress {
+  id: string;
+  team_id: string;
+  bonus_challenge_id: string;
+  completed_at: string;
+}

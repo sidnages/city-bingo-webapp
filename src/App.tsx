@@ -7,10 +7,11 @@ import Leaderboard from './components/layout/Leaderboard';
 import { Auth } from './components/auth/Auth';
 import { BingoCelebration } from './components/bingo/BingoCelebration';
 import { AdminDashboard } from './components/admin/AdminDashboard';
+import BonusChallenges from './components/layout/BonusChallenges';
 import RulesModal from './components/bingo/RulesModal';
 import { supabase } from './lib/supabase';
 import { calculateTeamScore } from './lib/scoring';
-import type { Challenge, Team, Game } from './types/game';
+import type { Challenge, Team, Game, BonusChallenge } from './types/game';
 
 function App() {
   const [teamId, setTeamId] = useState<string | null>(localStorage.getItem('teamId'));
@@ -20,9 +21,12 @@ function App() {
   const [currentTeam, setCurrentTeam] = useState<Team | null>(null);
   const [game, setGame] = useState<Game | null>(null);
   const [challenges, setChallenges] = useState<Challenge[]>([]);
+  const [bonusChallenges, setBonusChallenges] = useState<BonusChallenge[]>([]);
   const [teams, setTeams] = useState<Team[]>([]);
   const [selectedChallenge, setSelectedChallenge] = useState<Challenge | null>(null);
+  const [selectedBonusChallenge, setSelectedBonusChallenge] = useState<BonusChallenge | null>(null);
   const [isMobile, setIsMobile] = useState(window.innerWidth < 1024);
+
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [showBingoEffect, setShowBingoEffect] = useState(false);
@@ -77,6 +81,15 @@ function App() {
 
       if (challengesError) throw challengesError;
 
+      // Fetch Bonus Challenges
+      const { data: bonusData, error: bonusError } = await supabase
+        .from('bonus_challenges')
+        .select('*')
+        .eq('game_id', teamData.game_id)
+        .order('release_at_minutes', { ascending: true });
+
+      const initialBonusChallenges = bonusError ? [] : (bonusData || []);
+
       // Fetch All Teams for this game
       const { data: teamsData, error: teamsError } = await supabase
         .from('teams')
@@ -84,6 +97,7 @@ function App() {
         .eq('game_id', teamData.game_id);
 
       if (teamsError) throw teamsError;
+      const teamIds = teamsData.map(t => t.id);
 
       // Fetch Progress for ALL teams in this game
       const { data: progressData, error: progressError } = await supabase
@@ -93,8 +107,15 @@ function App() {
 
       if (progressError) throw progressError;
 
+      // Fetch ALL Bonus Progress for this game
+      const { data: allBonusProgressData, error: allBonusProgressError } = await supabase
+        .from('bonus_team_progress')
+        .select('*')
+        .in('team_id', teamIds);
+      
+      const allBonusProgress = allBonusProgressError ? [] : (allBonusProgressData || []);
+
       if (challengesData && teamsData && progressData) {
-        // Ensure unique positions (safety check against DB duplication)
         const uniqueChallengesMap = new Map();
         challengesData.forEach(c => {
           if (!uniqueChallengesMap.has(c.position)) {
@@ -115,13 +136,17 @@ function App() {
         
         setChallenges(enrichedChallenges);
 
+        // Enrich Bonus Challenges
+        const enrichedBonus = initialBonusChallenges.map(bc => ({
+          ...bc,
+          isCompleted: allBonusProgress.some((bp: any) => bp.team_id === teamId && bp.bonus_challenge_id === bc.id)
+        }));
+        setBonusChallenges(enrichedBonus);
+
         // Check for Bingo
         const bingoPatterns = [
-          // Rows
           [0, 1, 2, 3, 4], [5, 6, 7, 8, 9], [10, 11, 12, 13, 14], [15, 16, 17, 18, 19], [20, 21, 22, 23, 24],
-          // Columns
           [0, 5, 10, 15, 20], [1, 6, 11, 16, 21], [2, 7, 12, 17, 22], [3, 8, 13, 18, 23], [4, 9, 14, 19, 24],
-          // Diagonals
           [0, 6, 12, 18, 24], [4, 8, 12, 16, 20]
         ];
 
@@ -133,31 +158,32 @@ function App() {
         });
 
         setBingoCount(prev => {
-          // Trigger celebration if bingo count increased and it's NOT the very first fetch of the session
           if (currentBingoCount > prev && !isInitialLoad.current) {
             setShowBingoEffect(true);
           }
           return currentBingoCount;
         });
 
-        // Mark initial load as complete after the first check
         isInitialLoad.current = false;
 
         const teamsWithData = teamsData.map(t => {
-          const teamProgress = progressData.filter((p: any) => p.team_id === t.id);
-          const squaresCompleted = teamProgress.length;
-          const calculatedScore = calculateTeamScore(t.id, progressData, filteredChallenges, {
-            square: gameData.points_per_square,
-            bingo: gameData.points_per_bingo,
-            unique: gameData.points_per_unique
-          });
+          const calculatedScore = calculateTeamScore(
+            t.id, 
+            progressData, 
+            filteredChallenges, 
+            {
+              square: gameData.points_per_square,
+              bingo: gameData.points_per_bingo,
+              unique: gameData.points_per_unique
+            },
+            allBonusProgress,
+            initialBonusChallenges
+          );
           
           return {
             ...t,
-            squaresCompleted,
             calculatedScore,
-            // Display value based on game status
-            score: gameData.published_at ? calculatedScore : squaresCompleted
+            score: gameData.published_at ? calculatedScore : progressData.filter((p: any) => p.team_id === t.id).length
           };
         });
         setTeams(teamsWithData);
@@ -195,6 +221,8 @@ function App() {
         .on('postgres_changes', { event: '*', schema: 'public', table: 'team_progress' }, () => fetchData())
         .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'teams' }, () => fetchData())
         .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'games' }, () => fetchData())
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'bonus_team_progress' }, () => fetchData())
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'bonus_challenges' }, () => fetchData())
         .subscribe();
 
       return () => {
@@ -235,32 +263,19 @@ function App() {
     setSelectedChallenge(challenge);
   };
 
-  const getCompletionStatus = () => {
-    if (game?.stopped_at) {
-      return { 
-        canComplete: false, 
-        disabledReason: "The game has ended. No more challenges can be completed." 
-      };
-    }
+  const handleBonusClick = (bonus: BonusChallenge) => {
+    setSelectedBonusChallenge(bonus);
+  };
 
-    if (!currentTeam?.started_at) {
-      return { 
-        canComplete: false, 
-        disabledReason: 'Your run has not started yet.' 
-      };
-    }
+  const getCompletionStatus = () => {
+    if (game?.stopped_at) return { canComplete: false, disabledReason: "The game has ended." };
+    if (!currentTeam?.started_at) return { canComplete: false, disabledReason: 'Your run has not started yet.' };
 
     const startTime = new Date(currentTeam.started_at).getTime();
     const elapsed = Math.floor((Date.now() - startTime) / 1000);
     const isTimeUp = elapsed >= (game?.duration_seconds || 0);
 
-    if (isTimeUp) {
-      return { 
-        canComplete: false, 
-        disabledReason: "Time's up! Your run has completed." 
-      };
-    }
-
+    if (isTimeUp) return { canComplete: false, disabledReason: "Time's up!" };
     return { canComplete: true };
   };
 
@@ -270,127 +285,65 @@ function App() {
     if (!teamId) return;
     try {
       if (challenge.isCompleted) {
-        // Uncomplete: find progress record
-        const { data: progress, error: fetchError } = await supabase
-          .from('team_progress')
-          .select('id')
-          .eq('team_id', teamId)
-          .eq('challenge_id', challenge.id)
-          .single();
-        
-        if (fetchError) throw fetchError;
-        
-        const { error: deleteError } = await supabase
-          .from('team_progress')
-          .delete()
-          .eq('id', progress.id);
-          
-        if (deleteError) throw deleteError;
+        const { data: progress } = await supabase.from('team_progress').select('id').eq('team_id', teamId).eq('challenge_id', challenge.id).single();
+        if (progress) await supabase.from('team_progress').delete().eq('id', progress.id);
       } else {
-        // Complete
-        const { error } = await supabase
-          .from('team_progress')
-          .insert([{
-            team_id: teamId,
-            challenge_id: challenge.id,
-            instagram_url: instagramUrl
-          }]);
-
-        if (error) throw error;
+        await supabase.from('team_progress').insert([{ team_id: teamId, challenge_id: challenge.id, instagram_url: instagramUrl }]);
       }
-
       setSelectedChallenge(null);
-      await fetchData(); // Refresh state
+      await fetchData();
     } catch (error) {
       console.error('Error toggling challenge:', error);
     }
   };
 
-  const FullScreenState = ({ children, isError = false }: { children: React.ReactNode, isError?: boolean }) => (
-    <div style={{ 
-      display: 'flex', 
-      flexDirection: 'column',
-      justifyContent: 'center', 
-      alignItems: 'center', 
-      minHeight: '100vh', 
-      textAlign: 'center',
-      padding: '2rem',
-      backgroundColor: 'var(--color-bg)'
-    }}>
-      <div style={{
-        backgroundColor: 'var(--color-white)',
-        padding: '3rem',
-        borderRadius: 'var(--radius-lg)',
-        border: `4px solid ${isError ? 'var(--color-secondary)' : 'var(--color-primary)'}`,
-        boxShadow: '0 8px 24px rgba(0,0,0,0.1)',
-        maxWidth: '500px',
-        width: '100%'
-      }}>
-        {children}
-      </div>
-    </div>
-  );
+  const handleCompleteBonusChallenge = async (bonusChallenge: BonusChallenge) => {
+    if (!teamId || !canComplete) return;
 
-  if (!teamId && !adminGameId) {
-    return <Auth onLogin={handleLogin} onAdminLogin={handleAdminLogin} />;
-  }
+    // Final check for expiry before submitting
+    const startTime = currentTeam?.started_at ? new Date(currentTeam.started_at).getTime() : 0;
+    const elapsedMinutes = (Date.now() - startTime) / 60000;
+    const isExpired = elapsedMinutes >= (bonusChallenge.release_at_minutes + bonusChallenge.duration_minutes);
 
-  if (activeView === 'admin' && adminGameId) {
-    return <AdminDashboard gameId={adminGameId} onSignOut={handleSignOut} />;
-  }
+    if (isExpired && !bonusChallenge.isCompleted) {
+      alert("This bonus challenge has just expired and can no longer be completed.");
+      return;
+    }
+
+    try {
+      if (bonusChallenge.isCompleted) {
+        // Uncomplete: find bonus progress record and delete it
+        const { data: progress } = await supabase
+          .from('bonus_team_progress')
+          .select('id')
+          .eq('team_id', teamId)
+          .eq('bonus_challenge_id', bonusChallenge.id)
+          .single();
+        
+        if (progress) {
+          await supabase.from('bonus_team_progress').delete().eq('id', progress.id);
+        }
+      } else {
+        // Complete: insert new record
+        await supabase.from('bonus_team_progress').insert([{ 
+          team_id: teamId, 
+          bonus_challenge_id: bonusChallenge.id 
+        }]);
+      }
+      await fetchData();
+    } catch (error) {
+      console.error('Error toggling bonus challenge:', error);
+    }
+  };
+
+  if (!teamId && !adminGameId) return <Auth onLogin={handleLogin} onAdminLogin={handleAdminLogin} />;
+  if (activeView === 'admin' && adminGameId) return <AdminDashboard gameId={adminGameId} onSignOut={handleSignOut} />;
 
   if (loading && !currentTeam) {
     return (
-      <FullScreenState>
-        <div style={{ 
-          width: '50px', 
-          height: '50px', 
-          border: '5px solid var(--color-bg)', 
-          borderTop: '5px solid var(--color-primary)', 
-          borderRadius: '50%',
-          animation: 'spin 1s linear infinite',
-          margin: '0 auto 1.5rem'
-        }} />
+      <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '100vh', backgroundColor: 'var(--color-bg)' }}>
         <h2 style={{ color: 'var(--color-primary)' }}>Loading Game...</h2>
-        <style>{`@keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }`}</style>
-      </FullScreenState>
-    );
-  }
-
-  if (error) {
-    return (
-      <FullScreenState isError>
-        <h2 style={{ color: 'var(--color-secondary)', marginBottom: '1rem' }}>Oops!</h2>
-        <p style={{ color: 'var(--color-text)', marginBottom: '2rem', lineHeight: 1.5 }}>
-          {error || 'Game not found.'}
-        </p>
-        <div style={{ display: 'flex', gap: '1rem', justifyContent: 'center' }}>
-          <button 
-            onClick={() => fetchData()}
-            style={{
-              padding: '0.75rem 1.5rem',
-              backgroundColor: 'var(--color-primary)',
-              color: 'var(--color-white)',
-              borderRadius: 'var(--radius-md)',
-              fontWeight: 'bold'
-            }}
-          >
-            Try Again
-          </button>
-          <button 
-            onClick={handleSignOut}
-            style={{
-              padding: '0.75rem 1.5rem',
-              backgroundColor: 'var(--color-secondary)',
-              color: 'var(--color-white)',
-              borderRadius: 'var(--radius-md)',
-              fontWeight: 'bold'
-            }}
-          >
-            Sign Out
-          </button>
-        </div>
-      </FullScreenState>
+      </div>
     );
   }
 
@@ -404,21 +357,19 @@ function App() {
         padding: '0 1rem',
         display: 'flex',
         flexDirection: isMobile ? 'column' : 'row',
-        gap: '2rem',
-        alignItems: isMobile ? 'center' : 'flex-start'
+        gap: '2.5rem',
+        alignItems: isMobile ? 'center' : 'center', // Vertically center the main row
+        justifyContent: 'center'
       }}>
         <section style={{ flex: '1', width: '100%', maxWidth: '650px' }}>
-          <BingoCard 
-            challenges={challenges} 
-            onSquareClick={handleSquareClick} 
-          />
+          <BingoCard challenges={challenges} onSquareClick={handleSquareClick} />
         </section>
 
         <aside style={{ 
           width: isMobile ? '100%' : '320px', 
           display: 'flex', 
           flexDirection: 'column', 
-          gap: '1.5rem',
+          gap: '1.25rem',
           position: isMobile ? 'static' : 'sticky',
           top: '2rem'
         }}>
@@ -432,12 +383,20 @@ function App() {
               disabledReason={game.stopped_at ? "The game has ended." : "The game has not been started by the admin yet."}
             />
           )}
+
+          <BonusChallenges 
+            challenges={bonusChallenges}
+            teamStartedAt={currentTeam?.started_at || null}
+            onChallengeClick={handleBonusClick}
+          />
+
           <Leaderboard 
             teams={teams} 
             currentTeamId={teamId || ''} 
             gameDurationSeconds={game?.duration_seconds || 0}
             gameStoppedAt={game?.stopped_at || null}
             isPublished={!!game?.published_at}
+            compact={bonusChallenges.length > 0}
           />
         </aside>
       </main>
@@ -451,22 +410,65 @@ function App() {
         requireInstagram={game?.require_instagram}
       />
 
-      {showRulesModal && game && (
-        <RulesModal 
-          onClose={() => setShowRulesModal(false)}
-          points={{ 
-            square: game.points_per_square, 
-            bingo: game.points_per_bingo, 
-            unique: game.points_per_unique,
-            rules: game.game_rules
+      {selectedBonusChallenge && (
+        <ChallengeModal 
+          challenge={{
+            id: selectedBonusChallenge.id,
+            title: selectedBonusChallenge.title,
+            description: selectedBonusChallenge.description,
+            isCompleted: selectedBonusChallenge.isCompleted,
+            game_id: selectedBonusChallenge.game_id,
+            position: -1,
+            is_free_space: false
           }}
+          onClose={() => setSelectedBonusChallenge(null)}
+          onComplete={async () => {
+            await handleCompleteBonusChallenge(selectedBonusChallenge);
+            setSelectedBonusChallenge(null);
+          }}
+          canComplete={(() => {
+            if (selectedBonusChallenge.isCompleted) return false;
+            if (!canComplete) return false;
+            
+            // Check if expired
+            const startTime = currentTeam?.started_at ? new Date(currentTeam.started_at).getTime() : 0;
+            const elapsedMinutes = (Date.now() - startTime) / 60000;
+            const isExpired = elapsedMinutes >= (selectedBonusChallenge.release_at_minutes + selectedBonusChallenge.duration_minutes);
+            
+            return !isExpired;
+          })()}
+          disabledReason={(() => {
+            if (selectedBonusChallenge.isCompleted) {
+              return "For safety, bonus challenges can only be marked as incomplete by Admin after game is over.";
+            }
+            
+            // Check if expired
+            const startTime = currentTeam?.started_at ? new Date(currentTeam.started_at).getTime() : 0;
+            const elapsedMinutes = (Date.now() - startTime) / 60000;
+            const isExpired = elapsedMinutes >= (selectedBonusChallenge.release_at_minutes + selectedBonusChallenge.duration_minutes);
+            
+            if (isExpired) return "This bonus challenge has expired.";
+            
+            return disabledReason;
+          })()}
+          requireInstagram={game?.require_instagram}
         />
       )}
 
-      <BingoCelebration 
-        show={showBingoEffect} 
-        onComplete={() => setShowBingoEffect(false)} 
-      />
+      {showRulesModal && game && (
+        <RulesModal 
+          onClose={() => setShowRulesModal(false)} 
+          points={{ 
+            square: game.points_per_square, 
+            bingo: game.points_per_bingo, 
+            unique: game.points_per_unique, 
+            rules: game.game_rules 
+          }} 
+          hasBonuses={bonusChallenges.length > 0}
+        />
+      )}
+
+      <BingoCelebration show={showBingoEffect} onComplete={() => setShowBingoEffect(false)} />
     </div>
   );
 }

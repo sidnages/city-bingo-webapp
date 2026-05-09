@@ -8,7 +8,9 @@ export const calculateTeamScore = (
   teamId: string,
   allProgress: any[], // TeamProgress[]
   allChallenges: any[], // Challenge[]
-  scoringParams: { square: number, bingo: number, unique: number }
+  scoringParams: { square: number, bingo: number, unique: number },
+  allBonusProgress: any[] = [], // BonusTeamProgress[]
+  allBonusChallenges: any[] = [] // BonusChallenge[]
 ) => {
   // Sort challenges by position to ensure 0-24 index alignment
   const sortedChallenges = [...allChallenges].sort((a, b) => a.position - b.position);
@@ -41,6 +43,15 @@ export const calculateTeamScore = (
     const isCompletedByOthers = allProgress.some((p) => p.challenge_id === cId && p.team_id !== teamId);
     if (!isCompletedByOthers) {
       score += scoringParams.unique;
+    }
+  });
+
+  // 4. Bonus Challenges: Add points for each completed bonus challenge
+  const teamBonusProgress = allBonusProgress.filter(bp => bp.team_id === teamId);
+  teamBonusProgress.forEach(bp => {
+    const challenge = allBonusChallenges.find(bc => bc.id === bp.bonus_challenge_id);
+    if (challenge) {
+      score += challenge.points;
     }
   });
 
