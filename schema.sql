@@ -80,6 +80,7 @@ CREATE TABLE bonus_team_progress (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     team_id UUID REFERENCES teams(id) ON DELETE CASCADE,
     bonus_challenge_id UUID REFERENCES bonus_challenges(id) ON DELETE CASCADE,
+    instagram_url TEXT,
     completed_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
     UNIQUE(team_id, bonus_challenge_id)
 );

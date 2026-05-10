@@ -145,4 +145,24 @@ describe('ChallengeModal', () => {
     expect(screen.queryByText('Mark as Incomplete')).not.toBeInTheDocument();
     expect(screen.getByText('Free Space!')).toBeInTheDocument();
   });
+
+  it('renders "View Instagram Post" link if instagramUrl is present', () => {
+    const challengeWithInsta = { 
+      ...mockChallenge, 
+      isCompleted: true, 
+      instagramUrl: 'https://www.instagram.com/p/abc' 
+    };
+    render(
+      <ChallengeModal 
+        challenge={challengeWithInsta} 
+        onClose={() => {}} 
+        onComplete={() => {}} 
+        canComplete={true} 
+      />
+    );
+    
+    const link = screen.getByText('View Instagram Post');
+    expect(link).toBeInTheDocument();
+    expect(link.closest('a')).toHaveAttribute('href', 'https://www.instagram.com/p/abc');
+  });
 });

@@ -52,6 +52,7 @@ export interface BonusChallenge {
   duration_minutes: number;
   points: number;
   isCompleted?: boolean;
+  instagramUrl?: string;
 }
 
 export interface BonusTeamProgress {
@@ -59,4 +60,5 @@ export interface BonusTeamProgress {
   team_id: string;
   bonus_challenge_id: string;
   completed_at: string;
+  instagram_url?: string;
 }

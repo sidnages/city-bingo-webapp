@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Zap, CheckCircle2, Clock, Lock } from 'lucide-react';
+import { Zap, CheckCircle2, Clock, Lock, Camera } from 'lucide-react';
 import type { BonusChallenge } from '../../types/game';
 
 interface BonusChallengesProps {
@@ -179,6 +179,7 @@ const BonusChallenges: React.FC<BonusChallengesProps> = ({ challenges, teamStart
                   
                   {isDone && (
                     <div style={{ display: 'flex', alignItems: 'center', gap: '0.15rem', color: 'white', fontWeight: 'bold', fontSize: '0.65rem' }}>
+                      {c.instagramUrl && <Camera size={10} style={{ marginRight: '2px' }} />}
                       <CheckCircle2 size={10} />
                       Done
                     </div>

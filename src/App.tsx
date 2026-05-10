@@ -137,10 +137,14 @@ function App() {
         setChallenges(enrichedChallenges);
 
         // Enrich Bonus Challenges
-        const enrichedBonus = initialBonusChallenges.map(bc => ({
-          ...bc,
-          isCompleted: allBonusProgress.some((bp: any) => bp.team_id === teamId && bp.bonus_challenge_id === bc.id)
-        }));
+        const enrichedBonus = initialBonusChallenges.map(bc => {
+          const progress = allBonusProgress.find((bp: any) => bp.team_id === teamId && bp.bonus_challenge_id === bc.id);
+          return {
+            ...bc,
+            isCompleted: !!progress,
+            instagramUrl: progress?.instagram_url
+          };
+        });
         setBonusChallenges(enrichedBonus);
 
         // Check for Bingo
@@ -297,7 +301,7 @@ function App() {
     }
   };
 
-  const handleCompleteBonusChallenge = async (bonusChallenge: BonusChallenge) => {
+  const handleCompleteBonusChallenge = async (bonusChallenge: BonusChallenge, instagramUrl?: string) => {
     if (!teamId || !canComplete) return;
 
     // Final check for expiry before submitting
@@ -327,7 +331,8 @@ function App() {
         // Complete: insert new record
         await supabase.from('bonus_team_progress').insert([{ 
           team_id: teamId, 
-          bonus_challenge_id: bonusChallenge.id 
+          bonus_challenge_id: bonusChallenge.id,
+          instagram_url: instagramUrl
         }]);
       }
       await fetchData();
@@ -420,11 +425,12 @@ function App() {
             isCompleted: selectedBonusChallenge.isCompleted,
             game_id: selectedBonusChallenge.game_id,
             position: -1,
-            is_free_space: false
+            is_free_space: false,
+            instagramUrl: selectedBonusChallenge.instagramUrl
           }}
           onClose={() => setSelectedBonusChallenge(null)}
-          onComplete={async () => {
-            await handleCompleteBonusChallenge(selectedBonusChallenge);
+          onComplete={async (_challenge, instagramUrl) => {
+            await handleCompleteBonusChallenge(selectedBonusChallenge, instagramUrl);
             setSelectedBonusChallenge(null);
           }}
           canComplete={(() => {

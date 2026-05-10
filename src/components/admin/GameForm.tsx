@@ -457,7 +457,7 @@ export const GameForm: React.FC<GameFormProps> = ({ existingGame, existingChalle
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
                   <Zap size={20} color="var(--color-primary)" />
-                  <h3 style={{ fontSize: '1rem', fontWeight: '800', color: isReadOnly ? '#4B5563' : 'var(--color-secondary)' }}>Bonus Challenges (Max 5)</h3>
+                  <h3 style={{ fontSize: '1rem', fontWeight: '800', color: isReadOnly ? '#4B5563' : 'var(--color-secondary)' }}>Bonus Challenges <span style={{ display: 'inline-block', whiteSpace: 'nowrap' }}>(Max 5)</span></h3>
                 </div>
                 {!isReadOnly && bonusChallenges.length < 5 && (
                   <button

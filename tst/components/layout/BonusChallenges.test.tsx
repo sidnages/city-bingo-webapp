@@ -165,4 +165,25 @@ describe('BonusChallenges', () => {
     expect(screen.getByText('Done')).toBeInTheDocument();
     expect(screen.getByText('Finished')).toBeInTheDocument();
   });
+
+  it('renders Camera icon when instagramUrl is present', () => {
+    const challengesWithInsta = [
+      { ...mockChallenges[0], isCompleted: true, instagramUrl: 'https://instagram.com/p/123' }
+    ];
+    const startedAt = new Date(Date.now() - 5 * 60000).toISOString();
+
+    const { container } = render(
+      <BonusChallenges 
+        challenges={challengesWithInsta} 
+        teamStartedAt={startedAt}
+        isGameStopped={false} 
+        onChallengeClick={() => {}} 
+      />
+    );
+
+    // Camera icon has lucide-camera class or we can find it by its svg structure/role if needed
+    // But since we use lucide-react, it usually renders an svg with a specific data-lucide name or we can use container query
+    const cameraIcon = container.querySelector('svg.lucide-camera');
+    expect(cameraIcon).toBeInTheDocument();
+  });
 });

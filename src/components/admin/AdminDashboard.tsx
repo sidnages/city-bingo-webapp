@@ -26,7 +26,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ gameId, onSignOu
   const [selectedChallenge, setSelectedChallenge] = useState<Challenge | null>(null);
   const [, setTick] = useState(0);
 
-  const toggleBonusChallenge = async (teamId: string, bonusChallengeId: string, isCompleted: boolean) => {
+  const toggleBonusChallenge = async (teamId: string, bonusChallengeId: string, isCompleted: boolean, instagramUrl?: string) => {
     if (game?.published_at) {
       alert('You cannot modify progress after scores have been published.');
       return;
@@ -47,7 +47,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ gameId, onSignOu
           if (error) throw error;
         }
       } else {
-        const { error } = await supabase.from('bonus_team_progress').insert([{ team_id: teamId, bonus_challenge_id: bonusChallengeId }]);
+        const { error } = await supabase.from('bonus_team_progress').insert([{ team_id: teamId, bonus_challenge_id: bonusChallengeId, instagram_url: instagramUrl }]);
         if (error) throw error;
       }
       await fetchData();
@@ -321,7 +321,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ gameId, onSignOu
         </div>
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '1.5rem' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(350px, 1fr))', gap: '1.5rem' }}>
         <div style={{ backgroundColor: 'white', borderRadius: 'var(--radius-lg)', boxShadow: 'var(--shadow-md)', overflow: 'hidden' }}>
           <div style={{ padding: '1.25rem', borderBottom: '1px solid #F3F4F6', backgroundColor: '#F9FAFB', display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
             <Users size={20} color="var(--color-primary)" />
@@ -351,7 +351,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ gameId, onSignOu
         </div>
 
         {selectedTeam ? (
-          <div style={{ gridColumn: 'span 2', backgroundColor: 'white', borderRadius: 'var(--radius-lg)', boxShadow: 'var(--shadow-md)', padding: '1.5rem', display: 'flex', flexDirection: 'column' }}>
+          <div style={{ gridColumn: 'span 2', width: 'fit-content', backgroundColor: 'white', borderRadius: 'var(--radius-lg)', boxShadow: 'var(--shadow-md)', padding: '1.5rem', display: 'flex', flexDirection: 'column' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
               <div>
                 <h3 style={{ fontSize: '1.25rem', fontWeight: '800', color: 'var(--color-primary)' }}>{selectedTeam.name}'s Card</h3>
@@ -361,7 +361,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ gameId, onSignOu
             </div>
 
             <div style={{ display: 'flex', flexDirection: window.innerWidth < 1024 ? 'column' : 'row', gap: '2rem', flexWrap: 'wrap' }}>
-              <div style={{ flex: '1 1 auto', minWidth: '300px', maxWidth: '400px' }}>
+              <div style={{ flex: '0 0 auto', width: '100%', maxWidth: '350px' }}>
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '0.4rem', backgroundColor: 'var(--color-bg-dark)', padding: '0.5rem', borderRadius: 'var(--radius-md)', marginBottom: '1rem', width: '100%' }}>
                   {challenges.map(challenge => {
                     const progress = allProgress.find(p => p.team_id === selectedTeam.id && p.challenge_id === challenge.id);
@@ -387,12 +387,28 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ gameId, onSignOu
               {bonusChallenges.length > 0 && (
                 <div style={{ flex: '1 1 auto', minWidth: '300px' }}>
                   <BonusChallenges 
-                    challenges={bonusChallenges.map(bc => ({ ...bc, isCompleted: allBonusProgress.some(bp => bp.team_id === selectedTeam.id && bp.bonus_challenge_id === bc.id) }))}
+                    challenges={bonusChallenges.map(bc => {
+                      const progress = allBonusProgress.find(bp => bp.team_id === selectedTeam.id && bp.bonus_challenge_id === bc.id);
+                      return { 
+                        ...bc, 
+                        isCompleted: !!progress,
+                        instagramUrl: progress?.instagram_url
+                      };
+                    })}
                     teamStartedAt={selectedTeam.started_at || null}
                     isGameStopped={!!game?.stopped_at}
                     onChallengeClick={(bc) => {
                       const progress = allBonusProgress.find(p => p.team_id === selectedTeam.id && p.bonus_challenge_id === bc.id);
-                      setSelectedChallenge({ id: bc.id, title: bc.title, description: bc.description, game_id: bc.game_id, position: -1, is_free_space: false, isCompleted: !!progress });
+                      setSelectedChallenge({ 
+                        id: bc.id, 
+                        title: bc.title, 
+                        description: bc.description, 
+                        game_id: bc.game_id, 
+                        position: -1, 
+                        is_free_space: false, 
+                        isCompleted: !!progress,
+                        instagramUrl: progress?.instagram_url
+                      });
                     }}
                   />
                 </div>
@@ -413,7 +429,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ gameId, onSignOu
           onClose={() => setSelectedChallenge(null)}
           onComplete={(_challenge, instagramUrl) => {
             if (selectedChallenge.position === -1) {
-              toggleBonusChallenge(selectedTeam.id, selectedChallenge.id, !!selectedChallenge.isCompleted);
+              toggleBonusChallenge(selectedTeam.id, selectedChallenge.id, !!selectedChallenge.isCompleted, instagramUrl);
             } else {
               toggleChallenge(selectedTeam.id, selectedChallenge.id, !!selectedChallenge.isCompleted, instagramUrl);
             }
