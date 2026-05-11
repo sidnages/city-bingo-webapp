@@ -15,17 +15,19 @@ City Bingo uses Supabase for database and real-time synchronization.
 3.  **API Credentials:**
     *   Go to **Project Settings > API**.
     *   Copy your `Project URL` and `anon public` key.
-4.  **Edge Function Setup:**
-    *   Generate Vapid keys via `npx web-push generate-vapid-keys`. Record your generated keys
-    *   Login and link your project: `npx supabase login` and `npx supabase link --project-ref your-project-ref`
-    *   Deploy the Edge Function for sending notifications: `npx supabase functions deploy send-push`
-    *   Set secrets for the function
+4.  **Notifications Setup:**
+    *   Push notifications are sent via a Supabase edge function.
+    *   FIrst, generate Vapid keys via `npx web-push generate-vapid-keys`. Record your generated keys.
+    *   Login and link your project: `npx supabase login` and `npx supabase link --project-ref your-project-ref`.
+    *   Deploy the Edge Function for sending notifications: `npx supabase functions deploy send-push`.
+    *   Set secrets for the function:
         ```
         npx supabase secrets set VAPID_PUBLIC_KEY=your_vapid_public_key
         npx supabase secrets set VAPID_PRIVATE_KEY=your_vapid_private_key
-    *   Set the edge function to run via webhook
-5.  **Edge Function Scheduling:**
-    *   Notifications are either sent out manually (from the admin client when the admin changes game state) or automatically (via edge function, currently used for sending notifications for bonus challenges).
+        ```
+5.  **Notification Scheduling:**
+    *   The edge function is invoked manually to send out notifications in most cases.
+    *   However, some the bonus challenge release notification needs to be scheduled out via Webhook.
     *   To schedule the edge function, go to **Database Webhooks** in Supabase and create a new Webhook.
     *   **Table:** `bonus_challenges`
     *   **Events:** Check **INSERT** only.
