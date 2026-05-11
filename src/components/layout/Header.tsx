@@ -43,7 +43,7 @@ const Header: React.FC<HeaderProps> = ({ teamName, onSignOut, onShowRules, isSub
               marginTop: '0.2rem'
             }}
           >
-            {isSubscribed ? <Bell size={22} fill="currentColor" /> : <BellOff size={22} />}
+            {isSubscribed ? <Bell size={44} fill="currentColor" /> : <BellOff size={44} />}
           </button>
         )}
       </div>
