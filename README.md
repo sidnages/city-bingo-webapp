@@ -38,7 +38,7 @@ City Bingo uses Supabase for database and real-time synchronization.
         VITE_SUPABASE_URL=your_supabase_url
         VITE_SUPABASE_ANON_KEY=your_supabase_anon_key
         VITE_GAME_CREATION_SECRET=your_secret_password
-        `VITE_VAPID_PUBLIC_KEY=your_vapid_public_key
+        VITE_VAPID_PUBLIC_KEY=your_vapid_public_key
         ```
 
 ### 2. Local Development
@@ -62,7 +62,7 @@ This project is optimized for deployment on [Vercel](https://vercel.com/).
 
 1.  **Push to GitHub:** Ensure your code is in a GitHub repository.
 2.  **Import to Vercel:** Create a new project in Vercel and import your repository.
-3.  **Configure Environment Variables:** In the Vercel project settings, add `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY` and `VITE_GAME_CREATION_SECRET`.
+3.  **Configure Environment Variables:** In the Vercel project settings, copy over your .env file.
 4.  **Deploy:** Vercel will automatically build and deploy your app.
 
 ---

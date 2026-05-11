@@ -14,17 +14,33 @@ export async function requestNotificationPermission() {
 
 export async function subscribeUserToPush(teamId: string) {
   try {
+    if (!('serviceWorker' in navigator)) {
+      throw new Error('Service workers are not supported by your browser.');
+    }
+
+    if (!VAPID_PUBLIC_KEY) {
+      throw new Error('VITE_VAPID_PUBLIC_KEY is not defined. Please check your environment variables.');
+    }
+
     const registration = await navigator.serviceWorker.ready;
+    if (!registration.pushManager) {
+      throw new Error('Push messaging is not supported by your browser.');
+    }
     
     // Check if subscription already exists
     let subscription = await registration.pushManager.getSubscription();
     
     if (!subscription) {
       // Create new subscription
-      subscription = await registration.pushManager.subscribe({
-        userVisibleOnly: true,
-        applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY)
-      });
+      try {
+        subscription = await registration.pushManager.subscribe({
+          userVisibleOnly: true,
+          applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY)
+        });
+      } catch (err) {
+        console.error('Push registration failed:', err);
+        throw new Error('Failed to subscribe to push service. This might be due to an invalid VAPID key or browser restriction.');
+      }
     }
 
     // Save to Supabase
@@ -35,10 +51,15 @@ export async function subscribeUserToPush(teamId: string) {
         subscription: subscription.toJSON()
       }, { onConflict: 'team_id' });
 
-    if (error) throw error;
+    if (error) {
+      console.error('Supabase upsert error:', error);
+      throw new Error(`Failed to save subscription to database: ${error.message}`);
+    }
+    
     return true;
-  } catch (error) {
-    console.error('Failed to subscribe to push notifications:', error);
+  } catch (error: any) {
+    console.error('Detailed push subscription error:', error);
+    alert(error.message || 'Failed to subscribe to push notifications.');
     return false;
   }
 }
@@ -93,16 +114,22 @@ export async function sendPushNotification(gameId: string, type: 'game_start' | 
 }
 
 function urlBase64ToUint8Array(base64String: string) {
-  const padding = '='.repeat((4 - base64String.length % 4) % 4);
-  const base64 = (base64String + padding)
-    .replace(/-/g, '+')
-    .replace(/_/g, '/');
+  try {
+    const cleanString = base64String.replace(/["']/g, '').trim();
+    const padding = '='.repeat((4 - cleanString.length % 4) % 4);
+    const base64 = (cleanString + padding)
+      .replace(/-/g, '+')
+      .replace(/_/g, '/');
 
-  const rawData = window.atob(base64);
-  const outputArray = new Uint8Array(rawData.length);
+    const rawData = window.atob(base64);
+    const outputArray = new Uint8Array(rawData.length);
 
-  for (let i = 0; i < rawData.length; ++i) {
-    outputArray[i] = rawData.charCodeAt(i);
+    for (let i = 0; i < rawData.length; ++i) {
+      outputArray[i] = rawData.charCodeAt(i);
+    }
+    return outputArray;
+  } catch (error) {
+    console.error('Failed to decode VAPID public key:', error);
+    throw new Error('The VAPID public key is malformed. Please ensure it is a valid base64 string.');
   }
-  return outputArray;
 }
