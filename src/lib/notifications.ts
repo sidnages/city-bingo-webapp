@@ -20,6 +20,9 @@ export async function requestNotificationPermission() {
 }
 
 export async function subscribeUserToPush(teamId: string) {
+  if (teamId) {
+      throw new Error("Vapid Public Key " + VAPID_PUBLIC_KEY);
+  }
   try {
     if (!('serviceWorker' in navigator)) {
       throw new Error('Service workers are not supported by your browser.');
