@@ -11,6 +11,7 @@ import BonusChallenges from './components/layout/BonusChallenges';
 import RulesModal from './components/bingo/RulesModal';
 import { supabase } from './lib/supabase';
 import { calculateTeamScore } from './lib/scoring';
+import { checkPushSubscription, requestNotificationPermission, subscribeUserToPush, unsubscribeUserFromPush } from './lib/notifications';
 import type { Challenge, Team, Game, BonusChallenge } from './types/game';
 
 function App() {
@@ -26,6 +27,7 @@ function App() {
   const [selectedChallenge, setSelectedChallenge] = useState<Challenge | null>(null);
   const [selectedBonusChallenge, setSelectedBonusChallenge] = useState<BonusChallenge | null>(null);
   const [isMobile, setIsMobile] = useState(window.innerWidth < 1024);
+  const [isSubscribed, setIsSubscribed] = useState(false);
 
   const [loading, setLoading] = useState(true);
   const [, setError] = useState<string | null>(null);
@@ -61,6 +63,10 @@ function App() {
         throw teamError;
       }
       setCurrentTeam(teamData);
+
+      // Check push subscription
+      const subscribed = await checkPushSubscription(teamId);
+      setIsSubscribed(subscribed);
 
       // Fetch Game
       const { data: gameData, error: gameError } = await supabase
@@ -341,6 +347,23 @@ function App() {
     }
   };
 
+  const handleTogglePush = async () => {
+    if (!teamId) return;
+    
+    if (isSubscribed) {
+      const success = await unsubscribeUserFromPush(teamId);
+      if (success) setIsSubscribed(false);
+    } else {
+      const granted = await requestNotificationPermission();
+      if (granted) {
+        const success = await subscribeUserToPush(teamId);
+        if (success) setIsSubscribed(success);
+      } else {
+        alert('Notification permission denied. Please enable it in your browser settings.');
+      }
+    }
+  };
+
   if (!teamId && !adminGameId) return <Auth onLogin={handleLogin} onAdminLogin={handleAdminLogin} />;
   if (activeView === 'admin' && adminGameId) return <AdminDashboard gameId={adminGameId} onSignOut={handleSignOut} />;
 
@@ -354,7 +377,13 @@ function App() {
 
   return (
     <div style={{ minHeight: '100vh', paddingBottom: '3rem' }}>
-      <Header teamName={currentTeam?.name || 'Loading...'} onSignOut={handleSignOut} onShowRules={() => setShowRulesModal(true)} />
+      <Header 
+        teamName={currentTeam?.name || 'Loading...'} 
+        onSignOut={handleSignOut} 
+        onShowRules={() => setShowRulesModal(true)}
+        isSubscribed={isSubscribed}
+        onTogglePush={handleTogglePush}
+      />
       
       <main style={{
         maxWidth: '1200px',

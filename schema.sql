@@ -4,12 +4,12 @@
 
 -- 0. Clean Up
 DROP TABLE IF EXISTS team_progress CASCADE;
-DROP TABLE IF EXISTS players CASCADE;
 DROP TABLE IF EXISTS teams CASCADE;
 DROP TABLE IF EXISTS challenges CASCADE;
 DROP TABLE IF EXISTS games CASCADE;
 DROP TABLE IF EXISTS bonus_challenges CASCADE;
 DROP TABLE IF EXISTS bonus_team_progress CASCADE;
+DROP TABLE IF EXISTS push_subscriptions CASCADE;
 
 -- 1. Create Tables
 
@@ -85,12 +85,23 @@ CREATE TABLE bonus_team_progress (
     UNIQUE(team_id, bonus_challenge_id)
 );
 
+-- Push Subscriptions table
+CREATE TABLE push_subscriptions (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    team_id UUID REFERENCES teams(id) ON DELETE CASCADE,
+    subscription JSONB NOT NULL,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    UNIQUE(team_id)
+);
+
 -- 2. Enable Real-time
 BEGIN;
   ALTER PUBLICATION supabase_realtime ADD TABLE team_progress;
   ALTER PUBLICATION supabase_realtime ADD TABLE teams;
+  ALTER PUBLICATION supabase_realtime ADD TABLE games;
   ALTER PUBLICATION supabase_realtime ADD TABLE bonus_challenges;
   ALTER PUBLICATION supabase_realtime ADD TABLE bonus_team_progress;
+  ALTER PUBLICATION supabase_realtime ADD TABLE push_subscriptions;
 COMMIT;
 
 -- 3. Enable RLS and Add Policies
@@ -100,6 +111,7 @@ ALTER TABLE teams ENABLE ROW LEVEL SECURITY;
 ALTER TABLE team_progress ENABLE ROW LEVEL SECURITY;
 ALTER TABLE bonus_challenges ENABLE ROW LEVEL SECURITY;
 ALTER TABLE bonus_team_progress ENABLE ROW LEVEL SECURITY;
+ALTER TABLE push_subscriptions ENABLE ROW LEVEL SECURITY;
 
 -- Games Policies
 CREATE POLICY "Allow public read games" ON games FOR SELECT USING (true);
@@ -132,11 +144,17 @@ CREATE POLICY "Allow public read bonus_team_progress" ON bonus_team_progress FOR
 CREATE POLICY "Allow public insert bonus_team_progress" ON bonus_team_progress FOR INSERT WITH CHECK (true);
 CREATE POLICY "Allow public delete bonus_team_progress" ON bonus_team_progress FOR DELETE USING (true);
 
+-- Push Subscriptions Policies
+CREATE POLICY "Allow public read push_subscriptions" ON push_subscriptions FOR SELECT USING (true);
+CREATE POLICY "Allow public insert push_subscriptions" ON push_subscriptions FOR INSERT WITH CHECK (true);
+CREATE POLICY "Allow public update push_subscriptions" ON push_subscriptions FOR UPDATE USING (true);
+CREATE POLICY "Allow public delete push_subscriptions" ON push_subscriptions FOR DELETE USING (true);
+
 -- 4. Sample Data (Optional)
 
 -- Create a game
 INSERT INTO games (id, game_code, name, duration_seconds, admin_passcode, require_instagram) 
-VALUES ('d290f1ee-6c54-4b01-90e6-d701748f0851', 'CITY26', 'Downtown Explorer', 7200, '1234', false);
+VALUES ('d290f1ee-6c54-4b01-90e6-d701748f0851', 'CITY26', 'Downtown Explorer', 7200, '7421', false);
 
 -- Create challenges (25 for a 5x5 grid)
 INSERT INTO challenges (game_id, title, description, position, is_free_space) VALUES

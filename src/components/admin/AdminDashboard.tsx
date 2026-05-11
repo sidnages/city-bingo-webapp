@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { calculateTeamScore } from '../../lib/scoring';
 import { supabase } from '../../lib/supabase';
 import { Users, Play, Square, CheckSquare, Loader2, X, Trophy, AlertTriangle, Eye, Settings, BookOpen, Camera } from 'lucide-react';
+import { sendPushNotification } from '../../lib/notifications';
 import type { Game, Team, Challenge, TeamProgress } from '../../types/game';
 import { GameForm } from './GameForm';
 import ChallengeModal from '../bingo/ChallengeModal';
@@ -183,6 +184,10 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ gameId, onSignOu
     try {
       const { error } = await supabase.from('games').update({ started_at: new Date().toISOString() }).eq('id', gameId);
       if (error) throw error;
+      
+      // Trigger push notification
+      await sendPushNotification(gameId, 'game_start');
+      
       await fetchData();
     } catch (error) {
       console.error('Error starting game:', error);
@@ -197,6 +202,10 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ gameId, onSignOu
     try {
       const { error } = await supabase.from('games').update({ stopped_at: new Date().toISOString() }).eq('id', gameId);
       if (error) throw error;
+
+      // Trigger push notification
+      await sendPushNotification(gameId, 'game_end');
+
       await fetchData();
     } catch (error) {
       console.error('Error stopping game:', error);
@@ -211,6 +220,10 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ gameId, onSignOu
     try {
       const { error } = await supabase.from('games').update({ published_at: new Date().toISOString() }).eq('id', gameId);
       if (error) throw error;
+
+      // Trigger push notification
+      await sendPushNotification(gameId, 'score_published');
+
       await fetchData();
     } catch (error) {
       console.error('Error publishing scores:', error);

@@ -2,6 +2,13 @@ import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { AdminDashboard } from '../../../src/components/admin/AdminDashboard';
 import { supabase } from '../../../src/lib/supabase';
+import { sendPushNotification } from '../../../src/lib/notifications';
+
+// Mock notifications
+vi.mock('../../../src/lib/notifications', () => ({
+  sendPushNotification: vi.fn(),
+  checkPushSubscription: vi.fn().mockResolvedValue(false)
+}));
 
 // Mock Supabase
 vi.mock('../../../src/lib/supabase', () => ({
@@ -118,6 +125,57 @@ describe('AdminDashboard', () => {
       expect(updateResponse.update).toHaveBeenCalledWith(expect.objectContaining({
         started_at: expect.any(String)
       }));
+      expect(sendPushNotification).toHaveBeenCalledWith('game-1', 'game_start');
+    });
+  });
+
+  it('handles stopping the game and triggers notification', async () => {
+    window.confirm = vi.fn().mockReturnValue(true);
+    const startedGame = { ...mockGame, started_at: new Date().toISOString() };
+    const updateResponse = createMockSupabaseResponse(startedGame);
+    
+    (supabase.from as any).mockImplementation((table: string) => {
+      if (table === 'games') return updateResponse;
+      return createMockSupabaseResponse([]);
+    });
+
+    render(<AdminDashboard gameId="game-1" onSignOut={() => {}} />);
+    
+    const stopButton = await screen.findByText('STOP GAME');
+    fireEvent.click(stopButton);
+
+    await waitFor(() => {
+      expect(updateResponse.update).toHaveBeenCalledWith(expect.objectContaining({
+        stopped_at: expect.any(String)
+      }));
+      expect(sendPushNotification).toHaveBeenCalledWith('game-1', 'game_end');
+    });
+  });
+
+  it('handles publishing scores and triggers notification', async () => {
+    window.confirm = vi.fn().mockReturnValue(true);
+    const stoppedGame = { 
+      ...mockGame, 
+      started_at: new Date().toISOString(),
+      stopped_at: new Date().toISOString()
+    };
+    const updateResponse = createMockSupabaseResponse(stoppedGame);
+    
+    (supabase.from as any).mockImplementation((table: string) => {
+      if (table === 'games') return updateResponse;
+      return createMockSupabaseResponse([]);
+    });
+
+    render(<AdminDashboard gameId="game-1" onSignOut={() => {}} />);
+    
+    const publishButton = await screen.findByText('PUBLISH SCORES');
+    fireEvent.click(publishButton);
+
+    await waitFor(() => {
+      expect(updateResponse.update).toHaveBeenCalledWith(expect.objectContaining({
+        published_at: expect.any(String)
+      }));
+      expect(sendPushNotification).toHaveBeenCalledWith('game-1', 'score_published');
     });
   });
 

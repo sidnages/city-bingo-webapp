@@ -33,4 +33,36 @@ describe('Header', () => {
     );
     expect(screen.getByTestId('child')).toBeInTheDocument();
   });
+
+  it('renders the notification bell when onTogglePush is provided', () => {
+    const onTogglePush = vi.fn();
+    render(<Header teamName="Test Team" onTogglePush={onTogglePush} isSubscribed={false} />);
+    
+    // Check for BellOff icon (not subscribed)
+    const bellButton = screen.getByTitle('Enable Notifications');
+    expect(bellButton).toBeInTheDocument();
+    
+    const bellOffIcon = bellButton.querySelector('svg.lucide-bell-off');
+    expect(bellOffIcon).toBeInTheDocument();
+  });
+
+  it('renders the filled bell icon when isSubscribed is true', () => {
+    const onTogglePush = vi.fn();
+    render(<Header teamName="Test Team" onTogglePush={onTogglePush} isSubscribed={true} />);
+    
+    const bellButton = screen.getByTitle('Disable Notifications');
+    expect(bellButton).toBeInTheDocument();
+    
+    const bellIcon = bellButton.querySelector('svg.lucide-bell');
+    expect(bellIcon).toBeInTheDocument();
+  });
+
+  it('calls onTogglePush when the bell is clicked', () => {
+    const onTogglePush = vi.fn();
+    render(<Header teamName="Test Team" onTogglePush={onTogglePush} isSubscribed={false} />);
+    
+    const bellButton = screen.getByTitle('Enable Notifications');
+    fireEvent.click(bellButton);
+    expect(onTogglePush).toHaveBeenCalled();
+  });
 });

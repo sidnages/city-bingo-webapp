@@ -11,15 +11,34 @@ City Bingo uses Supabase for database and real-time synchronization.
 2.  **Database Schema:**
     *   Open the **SQL Editor** in your Supabase dashboard.
     *   Run the contents of `schema.sql` to create the tables (`games`, `challenges`, `teams`, `team_progress`) and enable Real-time replication.
+    *   If you ever need to safely reset the table content WITHOUT DELETING THE TABLES THEMSELVES, you can run `resetTables.sql`.
 3.  **API Credentials:**
     *   Go to **Project Settings > API**.
     *   Copy your `Project URL` and `anon public` key.
-4.  **Environment Variables:**
+4.  **Edge Function Setup:**
+    *   Generate Vapid keys via `npx web-push generate-vapid-keys`. Record your generated keys
+    *   Login and link your project: `npx supabase login` and `npx supabase link --project-ref your-project-ref`
+    *   Deploy the Edge Function for sending notifications: `npx supabase functions deploy send-push`
+    *   Set secrets for the function
+        ```
+        npx supabase secrets set VAPID_PUBLIC_KEY=your_vapid_public_key
+        npx supabase secrets set VAPID_PRIVATE_KEY=your_vapid_private_key
+    *   Set the edge function to run via webhook
+5.  **Edge Function Scheduling:**
+    *   Notifications are either sent out manually (from the admin client when the admin changes game state) or automatically (via edge function, currently used for sending notifications for bonus challenges).
+    *   To schedule the edge function, go to **Database Webhooks** in Supabase and create a new Webhook.
+    *   **Table:** `bonus_challenges`
+    *   **Events:** Check **INSERT** only.
+    *   **Type of Webhook:** Choose your `send-push` edge function.
+    *   **HTTP Method:** Select **POST**.
+    *   **HTTP Headers:** If not present, add `Authorization: Bearer YOUR_ANON_OR_SERVICE_ROLE_KEY`.
+6.  **Environment Variables:**
     *   Create a `.env` file in the project root:
         ```
         VITE_SUPABASE_URL=your_supabase_url
         VITE_SUPABASE_ANON_KEY=your_supabase_anon_key
         VITE_GAME_CREATION_SECRET=your_secret_password
+        `VITE_VAPID_PUBLIC_KEY=your_vapid_public_key
         ```
 
 ### 2. Local Development
@@ -71,11 +90,13 @@ As a participant, you will use the webapp to track your team's progress during t
 5.  **Real-time Leaderboard:**
     *   Use the sidebar to see the current rankings of all teams.
     *   Initially, the leaderboard will only show number of squares completed by each team. Once the game ends and the Admin publishes final scores, it will update to show the actual scores.
-6.  **Starting your Run:**
+6.  **Notifications:**
+    * Clicking the bell icon next to the game title should enable notifications for the game.
+7.  **Starting your Run:**
     *   Once the admin has started the overall run, you can hit the **Start Run** button whenever you are ready to start.
     *   Keep an eye on the countdown! Once the time is up, you will no longer be able to mark challenges as complete.
     *   Alternatively, if the admin chooses to globally stop the game, your timer will automatically run out.
-7.  **Bonus Challenges:**
+8.  **Bonus Challenges:**
     * If the game is configured to have bonus challenges, they will show up in the sidebar.
     * These challenges are released partway into the game and have a set time limit to complete, so be on the lookout!
 
