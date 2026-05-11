@@ -37,7 +37,6 @@ export async function subscribeUserToPush(teamId: string) {
     // Check if subscription already exists
     let subscription = await registration.pushManager.getSubscription();
     
-    console.log("vpc", VAPID_PUBLIC_KEY)
     if (!subscription) {
       // Create new subscription
       try {
@@ -123,9 +122,7 @@ export async function sendPushNotification(gameId: string, type: 'game_start' | 
 
 function urlBase64ToUint8Array(base64String: string) {
   try {
-    console.log("Base 64 String", base64String)
     const cleanString = base64String.replace(/["']/g, '').trim();
-    console.log("Clean String", cleanString)
     const padding = '='.repeat((4 - cleanString.length % 4) % 4);
     const base64 = (cleanString + padding)
       .replace(/-/g, '+')
