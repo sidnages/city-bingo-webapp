@@ -48,9 +48,9 @@ export interface BonusChallenge {
   game_id: string;
   title: string;
   description: string;
-  release_at_minutes: number;
   duration_minutes: number;
   points: number;
+  created_at: string;
   isCompleted?: boolean;
   instagramUrl?: string;
 }

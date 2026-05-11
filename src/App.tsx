@@ -92,7 +92,7 @@ function App() {
         .from('bonus_challenges')
         .select('*')
         .eq('game_id', teamData.game_id)
-        .order('release_at_minutes', { ascending: true });
+        .order('created_at', { ascending: true });
 
       const initialBonusChallenges = bonusError ? [] : (bonusData || []);
 
@@ -311,9 +311,9 @@ function App() {
     if (!teamId || !canComplete) return;
 
     // Final check for expiry before submitting
-    const startTime = currentTeam?.started_at ? new Date(currentTeam.started_at).getTime() : 0;
-    const elapsedMinutes = (Date.now() - startTime) / 60000;
-    const isExpired = elapsedMinutes >= (bonusChallenge.release_at_minutes + bonusChallenge.duration_minutes) || !!game?.stopped_at;
+    const createdAt = new Date(bonusChallenge.created_at || Date.now()).getTime();
+    const elapsedMinutes = (Date.now() - createdAt) / 60000;
+    const isExpired = elapsedMinutes >= bonusChallenge.duration_minutes || !!game?.stopped_at;
 
     if (isExpired && !bonusChallenge.isCompleted) {
       alert("This bonus challenge has just expired and can no longer be completed.");
@@ -420,8 +420,6 @@ function App() {
 
           <BonusChallenges 
             challenges={bonusChallenges}
-            teamStartedAt={currentTeam?.started_at || null}
-            isGameStopped={!!game?.stopped_at}
             onChallengeClick={handleBonusClick}
           />
 
@@ -431,7 +429,6 @@ function App() {
             gameDurationSeconds={game?.duration_seconds || 0}
             gameStoppedAt={game?.stopped_at || null}
             isPublished={!!game?.published_at}
-            compact={bonusChallenges.length > 0}
           />
         </aside>
       </main>
@@ -466,10 +463,10 @@ function App() {
             if (selectedBonusChallenge.isCompleted) return false;
             if (!canComplete) return false;
             
-            // Check if expired
-            const startTime = currentTeam?.started_at ? new Date(currentTeam.started_at).getTime() : 0;
-            const elapsedMinutes = (Date.now() - startTime) / 60000;
-            const isExpired = elapsedMinutes >= (selectedBonusChallenge.release_at_minutes + selectedBonusChallenge.duration_minutes) || !!game?.stopped_at;
+            // Check if expired based on creation time
+            const createdAt = new Date(selectedBonusChallenge.created_at || Date.now()).getTime();
+            const elapsedMinutes = (Date.now() - createdAt) / 60000;
+            const isExpired = elapsedMinutes >= selectedBonusChallenge.duration_minutes || !!game?.stopped_at;
             
             return !isExpired;
           })()}
@@ -478,10 +475,10 @@ function App() {
               return "For safety, bonus challenges can only be marked as incomplete by Admin after game is over.";
             }
             
-            // Check if expired
-            const startTime = currentTeam?.started_at ? new Date(currentTeam.started_at).getTime() : 0;
-            const elapsedMinutes = (Date.now() - startTime) / 60000;
-            const isExpired = elapsedMinutes >= (selectedBonusChallenge.release_at_minutes + selectedBonusChallenge.duration_minutes) || !!game?.stopped_at;
+            // Check if expired based on creation time
+            const createdAt = new Date(selectedBonusChallenge.created_at || Date.now()).getTime();
+            const elapsedMinutes = (Date.now() - createdAt) / 60000;
+            const isExpired = elapsedMinutes >= selectedBonusChallenge.duration_minutes || !!game?.stopped_at;
             
             if (isExpired) return "This bonus challenge has expired.";
             
@@ -499,8 +496,7 @@ function App() {
             bingo: game.points_per_bingo, 
             unique: game.points_per_unique, 
             rules: game.game_rules 
-          }} 
-          hasBonuses={bonusChallenges.length > 0}
+          }}
         />
       )}
 

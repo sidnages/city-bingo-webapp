@@ -69,7 +69,6 @@ CREATE TABLE bonus_challenges (
     game_id UUID REFERENCES games(id) ON DELETE CASCADE,
     title TEXT NOT NULL,
     description TEXT NOT NULL,
-    release_at_minutes INTEGER NOT NULL,
     duration_minutes INTEGER NOT NULL,
     points INTEGER NOT NULL DEFAULT 5,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()

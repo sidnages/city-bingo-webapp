@@ -98,7 +98,7 @@ describe('AdminDashboard', () => {
     render(<AdminDashboard gameId="game-1" onSignOut={() => {}} />);
     
     await waitFor(() => {
-      expect(screen.getByText('START GAME')).toBeInTheDocument();
+      expect(screen.getByText('Start Game')).toBeInTheDocument();
       expect(screen.getByText('Edit Config')).toBeInTheDocument();
     });
   });
@@ -115,7 +115,7 @@ describe('AdminDashboard', () => {
 
     render(<AdminDashboard gameId="game-1" onSignOut={() => {}} />);
     
-    const startButton = await screen.findByText('START GAME');
+    const startButton = await screen.findByText('Start Game');
     fireEvent.click(startButton);
 
     // Check that a confirmation window opens when the button is clicked
@@ -141,7 +141,7 @@ describe('AdminDashboard', () => {
 
     render(<AdminDashboard gameId="game-1" onSignOut={() => {}} />);
     
-    const stopButton = await screen.findByText('STOP GAME');
+    const stopButton = await screen.findByText('Stop Game');
     fireEvent.click(stopButton);
 
     await waitFor(() => {
@@ -168,7 +168,7 @@ describe('AdminDashboard', () => {
 
     render(<AdminDashboard gameId="game-1" onSignOut={() => {}} />);
     
-    const publishButton = await screen.findByText('PUBLISH SCORES');
+    const publishButton = await screen.findByText('Publish Scores');
     fireEvent.click(publishButton);
 
     await waitFor(() => {
@@ -189,10 +189,8 @@ describe('AdminDashboard', () => {
     render(<AdminDashboard gameId="game-1" onSignOut={() => {}} />);
     
     await waitFor(() => {
-      expect(screen.getByText('STOP GAME')).toBeInTheDocument();
+      expect(screen.getByText('Stop Game')).toBeInTheDocument();
       expect(screen.getByText('View Config')).toBeInTheDocument();
-      // The text "Game in Progress:" was likely removed or changed in recent UI updates
-      // Let's check for the team list which should be there
       expect(screen.getByText(/Teams \(0\)/)).toBeInTheDocument();
     });
   });
@@ -211,7 +209,7 @@ describe('AdminDashboard', () => {
     render(<AdminDashboard gameId="game-1" onSignOut={() => {}} />);
     
     await waitFor(() => {
-      expect(screen.getByText('PUBLISH SCORES')).toBeInTheDocument();
+      expect(screen.getByText('Publish Scores')).toBeInTheDocument();
     });
   });
 
@@ -230,7 +228,7 @@ describe('AdminDashboard', () => {
     render(<AdminDashboard gameId="game-1" onSignOut={() => {}} />);
     
     await waitFor(() => {
-      expect(screen.getByText('SCORES PUBLISHED')).toBeInTheDocument();
+      expect(screen.getByText('Scores Published')).toBeInTheDocument();
     });
   });
 
@@ -315,35 +313,59 @@ describe('AdminDashboard', () => {
     expect(window.confirm).toHaveBeenCalled();
   });
 
-  it('shows ChallengeModal as disabled when game is still in progress', async () => {
-    const mockTeam = { id: 'team-1', name: 'Team One', score: 0, started_at: null };
-    const mockChallenge = { id: 'chal-1', title: 'Task 1', is_free_space: false, position: 0 };
+  it('shows Send Bonus button as disabled before game starts', async () => {
+    render(<AdminDashboard gameId="game-1" onSignOut={() => {}} />);
     
+    await waitFor(() => {
+      const bonusButton = screen.getByText('Send Bonus');
+      expect(bonusButton).toBeDisabled();
+    });
+  });
+
+  it('enables Send Bonus button when game is active and teams have started', async () => {
     const startedGame = { 
       ...mockGame, 
-      started_at: new Date().toISOString()
+      started_at: new Date().toISOString(),
+      duration_seconds: 3600
     };
+    const mockTeams = [{ id: 't1', name: 'Team One', started_at: new Date().toISOString() }];
 
     (supabase.from as any).mockImplementation((table: string) => {
       if (table === 'games') return createMockSupabaseResponse(startedGame);
-      if (table === 'teams') return createMockSupabaseResponse([mockTeam]);
-      if (table === 'challenges') return createMockSupabaseResponse([mockChallenge]);
+      if (table === 'teams') return createMockSupabaseResponse(mockTeams);
       return createMockSupabaseResponse([]);
     });
 
     render(<AdminDashboard gameId="game-1" onSignOut={() => {}} />);
     
-    // Select team
-    const teamButton = await screen.findByText('Team One');
-    fireEvent.click(teamButton);
+    await waitFor(() => {
+      const bonusButton = screen.getByText('Send Bonus');
+      expect(bonusButton).not.toBeDisabled();
+    });
+  });
+
+  it('toggles the bonus popover when button is clicked', async () => {
+    const startedGame = { 
+      ...mockGame, 
+      started_at: new Date().toISOString(),
+      duration_seconds: 3600
+    };
+    const mockTeams = [{ id: 't1', name: 'Team One', started_at: new Date().toISOString() }];
+
+    (supabase.from as any).mockImplementation((table: string) => {
+      if (table === 'games') return createMockSupabaseResponse(startedGame);
+      if (table === 'teams') return createMockSupabaseResponse(mockTeams);
+      return createMockSupabaseResponse([]);
+    });
+
+    render(<AdminDashboard gameId="game-1" onSignOut={() => {}} />);
     
-    // Click challenge square
-    const square = await screen.findByText('Task 1');
-    fireEvent.click(square);
+    const bonusButton = await screen.findByText('Send Bonus');
+    fireEvent.click(bonusButton);
+
+    expect(screen.getByText('Send Bonus Challenge')).toBeInTheDocument();
     
-    // Check if button is DISABLED and reason is shown
-    await screen.findByText('Mark as Complete');
-    expect(screen.getByText('Mark as Complete')).toBeDisabled();
-    expect(screen.getByText('Game is still in progress.')).toBeInTheDocument();
+    fireEvent.click(bonusButton);
+    expect(screen.queryByText('Send Bonus Challenge')).not.toBeInTheDocument();
   });
 });

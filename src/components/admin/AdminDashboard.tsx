@@ -1,12 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { calculateTeamScore } from '../../lib/scoring';
 import { supabase } from '../../lib/supabase';
-import { Users, Play, Square, CheckSquare, Loader2, X, Trophy, AlertTriangle, Eye, Settings, BookOpen, Camera } from 'lucide-react';
+import { Users, Play, Square, CheckSquare, Loader2, X, Trophy, AlertTriangle, Eye, Settings, BookOpen, Camera, Zap } from 'lucide-react';
 import { sendPushNotification } from '../../lib/notifications';
 import type { Game, Team, Challenge, TeamProgress } from '../../types/game';
 import { GameForm } from './GameForm';
 import ChallengeModal from '../bingo/ChallengeModal';
 import BonusChallenges from '../layout/BonusChallenges';
+import { BonusAdminWidget } from './BonusAdminWidget';
 
 interface AdminDashboardProps {
   gameId: string;
@@ -25,7 +26,10 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ gameId, onSignOu
   const [selectedTeam, setSelectedTeam] = useState<Team | null>(null);
   const [isEditingConfig, setIsEditingConfig] = useState(false);
   const [selectedChallenge, setSelectedChallenge] = useState<Challenge | null>(null);
+  const [isBonusPopoverOpen, setIsBonusPopoverOpen] = useState(false);
   const [, setTick] = useState(0);
+
+  const canSendBonus = !!game?.started_at && !game?.stopped_at && teams.length > 0 && teams.every(t => !!t.started_at && (new Date().getTime() - new Date(t.started_at).getTime()) < (game.duration_seconds * 1000));
 
   const toggleBonusChallenge = async (teamId: string, bonusChallengeId: string, isCompleted: boolean, instagramUrl?: string) => {
     if (game?.published_at) {
@@ -62,7 +66,6 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ gameId, onSignOu
     try {
       setLoading(true);
       
-      // Fetch Game
       const { data: gameData, error: gameError } = await supabase
         .from('games')
         .select('*')
@@ -71,7 +74,6 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ gameId, onSignOu
       if (gameError) throw gameError;
       setGame(gameData);
 
-      // Fetch Teams
       const { data: teamsData, error: teamsError } = await supabase
         .from('teams')
         .select('*')
@@ -80,7 +82,6 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ gameId, onSignOu
       if (teamsError) throw teamsError;
       const teamIds = (teamsData || []).map(t => t.id);
 
-      // Fetch Challenges
       const { data: challengesData, error: challengesError } = await supabase
         .from('challenges')
         .select('*')
@@ -90,16 +91,14 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ gameId, onSignOu
       const challenges = challengesData || [];
       setChallenges(challenges);
 
-      // Fetch Bonus Challenges
       const { data: bonusData, error: bonusError } = await supabase
         .from('bonus_challenges')
         .select('*')
         .eq('game_id', gameId)
-        .order('release_at_minutes', { ascending: true });
+        .order('created_at', { ascending: true });
       const fetchedBonusChallenges = bonusError ? [] : (bonusData || []);
       setBonusChallenges(fetchedBonusChallenges);
 
-      // Fetch All Progress
       const { data: progressData, error: progressError } = await supabase
         .from('team_progress')
         .select('*, challenges!inner(game_id)')
@@ -107,7 +106,6 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ gameId, onSignOu
       if (progressError) throw progressError;
       setAllProgress(progressData || []);
 
-      // Fetch All Bonus Progress
       const { data: allBonusProgressData, error: allBonusProgressError } = await supabase
         .from('bonus_team_progress')
         .select('*')
@@ -145,6 +143,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ gameId, onSignOu
     const progressChannel = supabase
       .channel('admin-changes')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'team_progress' }, () => fetchData())
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'bonus_team_progress' }, () => fetchData())
       .on('postgres_changes', { event: '*', schema: 'public', table: 'teams' }, () => fetchData())
       .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'games', filter: `id=eq.${gameId}` }, (payload) => {
         setGame(payload.new as Game);
@@ -156,7 +155,6 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ gameId, onSignOu
     };
   }, [gameId]);
 
-  // Re-render every second to update team timers
   useEffect(() => {
     const interval = setInterval(() => setTick(t => t + 1), 1000);
     return () => clearInterval(interval);
@@ -167,7 +165,6 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ gameId, onSignOu
       <GameForm 
         existingGame={game}
         existingChallenges={challenges.length > 0 ? challenges : undefined}
-        existingBonusChallenges={bonusChallenges.length > 0 ? bonusChallenges : undefined}
         isReadOnly={!!game.started_at}
         onClose={() => setIsEditingConfig(false)}
         onSuccess={() => {
@@ -184,10 +181,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ gameId, onSignOu
     try {
       const { error } = await supabase.from('games').update({ started_at: new Date().toISOString() }).eq('id', gameId);
       if (error) throw error;
-      
-      // Trigger push notification
       await sendPushNotification(gameId, 'game_start');
-      
       await fetchData();
     } catch (error) {
       console.error('Error starting game:', error);
@@ -202,10 +196,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ gameId, onSignOu
     try {
       const { error } = await supabase.from('games').update({ stopped_at: new Date().toISOString() }).eq('id', gameId);
       if (error) throw error;
-
-      // Trigger push notification
       await sendPushNotification(gameId, 'game_end');
-
       await fetchData();
     } catch (error) {
       console.error('Error stopping game:', error);
@@ -220,10 +211,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ gameId, onSignOu
     try {
       const { error } = await supabase.from('games').update({ published_at: new Date().toISOString() }).eq('id', gameId);
       if (error) throw error;
-
-      // Trigger push notification
       await sendPushNotification(gameId, 'score_published');
-
       await fetchData();
     } catch (error) {
       console.error('Error publishing scores:', error);
@@ -302,35 +290,59 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ gameId, onSignOu
           <p style={{ color: '#6B7280' }}>Managing: <strong>{game?.name}</strong> ({game?.game_code})</p>
         </div>
         
-        <div style={{ display: 'flex', gap: '1rem' }}>
+        <div style={{ display: 'flex', flexDirection: window.innerWidth < 768 ? 'column' : 'row', gap: '1rem' }}>
           {!game?.started_at ? (
-            <button onClick={handleStartGame} disabled={actionLoading} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.75rem 1.5rem', backgroundColor: 'var(--color-primary)', color: 'white', borderRadius: 'var(--radius-md)', fontWeight: 'bold', opacity: actionLoading ? 0.7 : 1 }}>
+            <button onClick={handleStartGame} disabled={actionLoading} style={{ display: 'flex', justifyContent: 'center', gap: '0.5rem', padding: '0.75rem 1.5rem', backgroundColor: 'var(--color-primary)', color: 'white', borderRadius: 'var(--radius-md)', fontWeight: 'bold', opacity: actionLoading ? 0.7 : 1 }}>
               {actionLoading ? <Loader2 className="animate-spin" size={20} /> : <Play size={20} />}
-              START GAME
+              Start Game
             </button>
           ) : !game?.stopped_at ? (
-            <button onClick={handleStopGame} disabled={actionLoading} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.75rem 1.5rem', backgroundColor: 'var(--color-secondary)', color: 'white', borderRadius: 'var(--radius-md)', fontWeight: 'bold', opacity: actionLoading ? 0.7 : 1 }}>
+            <button onClick={handleStopGame} disabled={actionLoading} style={{ display: 'flex', justifyContent: 'center', gap: '0.5rem', padding: '0.75rem 1.5rem', backgroundColor: 'var(--color-secondary)', color: 'white', borderRadius: 'var(--radius-md)', fontWeight: 'bold', opacity: actionLoading ? 0.7 : 1 }}>
               {actionLoading ? <Loader2 className="animate-spin" size={20} /> : <Square size={20} />}
-              STOP GAME
+              Stop Game
             </button>
           ) : !game?.published_at ? (
-            <button onClick={handlePublishScores} disabled={actionLoading} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.75rem 1.5rem', backgroundColor: 'var(--color-secondary)', color: 'white', borderRadius: 'var(--radius-md)', fontWeight: 'bold', opacity: actionLoading ? 0.7 : 1 }}>
+            <button onClick={handlePublishScores} disabled={actionLoading} style={{ display: 'flex', justifyContent: 'center', gap: '0.5rem', padding: '0.75rem 1.5rem', backgroundColor: 'var(--color-secondary)', color: 'white', borderRadius: 'var(--radius-md)', fontWeight: 'bold', opacity: actionLoading ? 0.7 : 1 }}>
               {actionLoading ? <Loader2 className="animate-spin" size={20} /> : <Trophy size={20} />}
-              PUBLISH SCORES
+              Publish Scores
             </button>
           ) : (
-            <div style={{ padding: '0.75rem 1.5rem', backgroundColor: '#F3F4F6', color: '#4B5563', borderRadius: 'var(--radius-md)', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+            <div style={{ padding: '0.75rem 1.5rem', backgroundColor: '#F3F4F6', color: '#4B5563', borderRadius: 'var(--radius-md)', fontWeight: 'bold', display: 'flex', justifyContent: 'center', gap: '0.5rem' }}>
               <AlertTriangle size={20} />
-              SCORES PUBLISHED
+              Scores Published
             </div>
           )}
-          <button onClick={() => setIsEditingConfig(true)} style={{ padding: '0.75rem 1rem', backgroundColor: 'white', color: 'var(--color-text)', borderRadius: 'var(--radius-md)', fontWeight: 'bold', border: '1px solid #E5E7EB', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-            {game?.started_at ? <BookOpen size={20} /> : <Settings size={20} />}
-            {game?.started_at ? 'View Config' : 'Edit Config'}
-          </button>
-          <button onClick={onSignOut} style={{ padding: '0.75rem 1.5rem', backgroundColor: 'white', color: '#6B7280', borderRadius: 'var(--radius-md)', fontWeight: 'bold', border: '1px solid #E5E7EB' }}>
-            Sign Out
-          </button>
+          <div style={{ display: 'flex', flexDirection: 'row', gap: '1rem' }}>
+            <div style={{ position: 'relative' }}>
+             <button 
+                onClick={() => setIsBonusPopoverOpen(!isBonusPopoverOpen)} 
+                disabled={!canSendBonus}
+                style={{ 
+                   display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.75rem 1.5rem', 
+                   backgroundColor: canSendBonus ? 'var(--color-primary)' : '#D1D5DB', color: 'white', 
+                   borderRadius: 'var(--radius-md)', fontWeight: 'bold', cursor: canSendBonus ? 'pointer' : 'not-allowed'
+                }}
+             >
+                <Zap size={20} />
+                Send Bonus
+             </button>
+             {isBonusPopoverOpen && (
+               <div style={{ position: 'absolute', top: '100%', left: 0, marginTop: '0.5rem', zIndex: 50, padding: '0.5rem' }}>
+                 <BonusAdminWidget 
+                    gameId={gameId} 
+                    onSuccess={() => { setIsBonusPopoverOpen(false); fetchData(); }} 
+                 />
+               </div>
+             )}
+          </div>
+            <button onClick={() => setIsEditingConfig(true)} style={{ padding: '0.75rem 1rem', backgroundColor: 'white', color: 'var(--color-text)', borderRadius: 'var(--radius-md)', fontWeight: 'bold', border: '1px solid #E5E7EB', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+              {game?.started_at ? <BookOpen size={20} /> : <Settings size={20} />}
+              {game?.started_at ? 'View Config' : 'Edit Config'}
+            </button>
+            <button onClick={onSignOut} style={{ padding: '0.75rem 1.5rem', backgroundColor: 'white', color: '#6B7280', borderRadius: 'var(--radius-md)', fontWeight: 'bold', border: '1px solid #E5E7EB' }}>
+              Sign Out
+            </button>
+          </div>
         </div>
       </div>
 
@@ -364,7 +376,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ gameId, onSignOu
         </div>
 
         {selectedTeam ? (
-          <div style={{ gridColumn: 'span 2', width: 'fit-content', backgroundColor: 'white', borderRadius: 'var(--radius-lg)', boxShadow: 'var(--shadow-md)', padding: '1.5rem', display: 'flex', flexDirection: 'column' }}>
+          <div style={{ gridColumn: 'span 2', width: 'fit-content', minWidth: window.innerWidth < 1024 ? '0px' : '900px', backgroundColor: 'white', borderRadius: 'var(--radius-lg)', boxShadow: 'var(--shadow-md)', padding: '1.5rem', display: 'flex', flexDirection: 'column' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
               <div>
                 <h3 style={{ fontSize: '1.25rem', fontWeight: '800', color: 'var(--color-primary)' }}>{selectedTeam.name}'s Card</h3>
@@ -375,7 +387,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ gameId, onSignOu
 
             <div style={{ display: 'flex', flexDirection: window.innerWidth < 1024 ? 'column' : 'row', gap: '2rem', flexWrap: 'wrap' }}>
               <div style={{ flex: '0 0 auto', width: '100%', maxWidth: '350px' }}>
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '0.4rem', backgroundColor: 'var(--color-bg-dark)', padding: '0.5rem', borderRadius: 'var(--radius-md)', marginBottom: '1rem', width: '100%' }}>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '0.4rem', backgroundColor: 'var(--color-bg-dark)', padding: '0.5rem', borderRadius: 'var(--radius-sm)', marginBottom: '1rem', width: '100%' }}>
                   {challenges.map(challenge => {
                     const progress = allProgress.find(p => p.team_id === selectedTeam.id && p.challenge_id === challenge.id);
                     const isCompleted = !!progress || challenge.is_free_space;
@@ -397,8 +409,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ gameId, onSignOu
                 {!game?.started_at && <button onClick={() => handleRemoveTeam(selectedTeam.id)} style={{ width: '100%', padding: '0.75rem', backgroundColor: '#FEE2E2', color: '#B91C1C', borderRadius: 'var(--radius-md)', fontWeight: 'bold', border: '1px solid #FECACA', marginTop: '0.5rem' }}>Remove Team</button>}
               </div>
 
-              {bonusChallenges.length > 0 && (
-                <div style={{ flex: '1 1 auto', minWidth: '300px' }}>
+              <div style={{ flex: '1 1 auto', minWidth: '300px' }}>
                   <BonusChallenges 
                     challenges={bonusChallenges.map(bc => {
                       const progress = allBonusProgress.find(bp => bp.team_id === selectedTeam.id && bp.bonus_challenge_id === bc.id);
@@ -408,8 +419,6 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ gameId, onSignOu
                         instagramUrl: progress?.instagram_url
                       };
                     })}
-                    teamStartedAt={selectedTeam.started_at || null}
-                    isGameStopped={!!game?.stopped_at}
                     onChallengeClick={(bc) => {
                       const progress = allBonusProgress.find(p => p.team_id === selectedTeam.id && p.bonus_challenge_id === bc.id);
                       setSelectedChallenge({ 
@@ -425,7 +434,6 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ gameId, onSignOu
                     }}
                   />
                 </div>
-              )}
             </div>
           </div>
         ) : (

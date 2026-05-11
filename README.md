@@ -94,13 +94,14 @@ As a participant, you will use the webapp to track your team's progress during t
     *   Initially, the leaderboard will only show number of squares completed by each team. Once the game ends and the Admin publishes final scores, it will update to show the actual scores.
 6.  **Notifications:**
     * Clicking the bell icon next to the game title should enable notifications for the game.
+    * These are important to make sure you don't miss any bonus challenges!!
 7.  **Starting your Run:**
     *   Once the admin has started the overall run, you can hit the **Start Run** button whenever you are ready to start.
     *   Keep an eye on the countdown! Once the time is up, you will no longer be able to mark challenges as complete.
     *   Alternatively, if the admin chooses to globally stop the game, your timer will automatically run out.
 8.  **Bonus Challenges:**
-    * If the game is configured to have bonus challenges, they will show up in the sidebar.
-    * These challenges are released partway into the game and have a set time limit to complete, so be on the lookout!
+    * The admin can send out bonus challenges at any point in the run while all team's runs are currently still active.
+    * Look out for notifications when the admin sends out these challenges.
 
 ---
 
@@ -112,7 +113,6 @@ As an organizer, you use create games and use the Admin Dashboard to manage the 
     *   **Game Settings:** Set the name, time limit (in minutes), and optional rules.
     *   **Scoring:** Configure points awarded for each square, for completing a Bingo (row, column, or diagonal), and for being the only team to complete a challenge.
     *   **Require Instagram:** Enable this to mandate that teams provide proof via Instagram for every challenge.
-    *   **Bonus Challenges:** You can add optional bonus challenges that are released a set amount of time after the start of a run. Each challenge can configure its own start delay, time limit for completion, and number of points.
     *   **Bingo Board:** Click squares to define titles and descriptions. You can toggle a "FREE SPACE" in the center.
     *   To prevent random people from creating a game, you will be prompted for a "secret" when trying to create the game. Message the website creator for the secret.
     *   When you finish creating a game, REMEMBER the 6-character **Game ID** AND your inputted 4-digit **Admin Passcode**.
@@ -122,8 +122,9 @@ As an organizer, you use create games and use the Admin Dashboard to manage the 
 3.  **Managing the Live Event:**
     *   **Edit Game Config:** Before the game starts, you can edit the game settings. After the game starts, this locks and becomes view-only
     *   **Manage Teams:** Before the game starts, you can remove teams by clicking on a team and hitting **Remove Team** under the bingo card.
-    *   **Start Game:** Once the game is ready to begin, click **START GAME**. This locks the board configuration.
+    *   **Start Game:** Once the game is ready to begin, click **Start Game**. This locks the board configuration.
     *   **Monitor Progress:** See real-time updates as teams complete squares.
-    *   **Stop Game:** When the event ends, click **STOP GAME**. This prevents further completions by teams.
+    *   **Send Bonus Challenges:** Hit **Send Bonus** to send a bonus challenge midgame. NOTE - this can only be done while ALL team's runs are currently still active!
+    *   **Stop Game:** When the event ends, click **Stop Game**. This prevents further completions by teams.
     *   **Manual Adjustments:** After stopping, the admin can manually mark squares as complete/incomplete or edit Instagram URLs for any team.
-    *   **Publish Scores:** Click **PUBLISH SCORES** to finalize the results. You will no longer be able to edit the game after this is completed.
+    *   **Publish Scores:** Click **Publish Scores** to finalize the results. You will no longer be able to edit the game after this is completed.
