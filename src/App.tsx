@@ -11,7 +11,7 @@ import BonusChallenges from './components/layout/BonusChallenges';
 import RulesModal from './components/bingo/RulesModal';
 import { supabase } from './lib/supabase';
 import { calculateTeamScore } from './lib/scoring';
-import { checkPushSubscription, requestNotificationPermission, subscribeUserToPush, unsubscribeUserFromPush } from './lib/notifications';
+import { checkPushSubscription, requestNotificationPermission, subscribeUserToPush, unsubscribeUserFromPush, PUSH_NOTIFICATIONS_SUPPORTED } from './lib/notifications';
 import type { Challenge, Team, Game, BonusChallenge } from './types/game';
 
 function App() {
@@ -382,7 +382,7 @@ function App() {
         onSignOut={handleSignOut} 
         onShowRules={() => setShowRulesModal(true)}
         isSubscribed={isSubscribed}
-        onTogglePush={handleTogglePush}
+        onTogglePush={PUSH_NOTIFICATIONS_SUPPORTED ? handleTogglePush : undefined}
       />
       
       <main style={{

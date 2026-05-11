@@ -2,6 +2,13 @@ import { supabase } from './supabase';
 
 const VAPID_PUBLIC_KEY = import.meta.env.VITE_VAPID_PUBLIC_KEY;
 
+export const PUSH_NOTIFICATIONS_SUPPORTED = !!(
+  typeof window !== 'undefined' && 
+  'serviceWorker' in navigator && 
+  'Notification' in window && 
+  VAPID_PUBLIC_KEY
+);
+
 export async function requestNotificationPermission() {
   if (!('Notification' in window)) {
     console.error('This browser does not support desktop notification');
