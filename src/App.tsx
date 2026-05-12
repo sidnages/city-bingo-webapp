@@ -65,7 +65,7 @@ function App() {
       setCurrentTeam(teamData);
 
       // Check push subscription
-      const subscribed = await checkPushSubscription(teamId);
+      const subscribed = await checkPushSubscription();
       setIsSubscribed(subscribed);
 
       // Fetch Game
@@ -351,7 +351,7 @@ function App() {
     if (!teamId) return;
     
     if (isSubscribed) {
-      const success = await unsubscribeUserFromPush(teamId);
+      const success = await unsubscribeUserFromPush();
       if (success) setIsSubscribed(false);
     } else {
       const granted = await requestNotificationPermission();

@@ -55,8 +55,9 @@ export async function subscribeUserToPush(teamId: string) {
       .from('push_subscriptions')
       .upsert({
         team_id: teamId,
+        endpoint: subscription.endpoint,
         subscription: subscription.toJSON()
-      }, { onConflict: 'team_id' });
+      }, { onConflict: 'endpoint' });
 
     if (error) {
       console.error('Supabase upsert error:', error);
@@ -71,21 +72,23 @@ export async function subscribeUserToPush(teamId: string) {
   }
 }
 
-export async function unsubscribeUserFromPush(teamId: string) {
+export async function unsubscribeUserFromPush() {
   try {
     const registration = await navigator.serviceWorker.ready;
     const subscription = await registration.pushManager.getSubscription();
     
     if (subscription) {
+      const endpoint = subscription.endpoint;
       await subscription.unsubscribe();
+
+      const { error } = await supabase
+        .from('push_subscriptions')
+        .delete()
+        .eq('endpoint', endpoint);
+
+      if (error) throw error;
     }
 
-    const { error } = await supabase
-      .from('push_subscriptions')
-      .delete()
-      .eq('team_id', teamId);
-
-    if (error) throw error;
     return true;
   } catch (error) {
     console.error('Failed to unsubscribe from push notifications:', error);
@@ -93,18 +96,28 @@ export async function unsubscribeUserFromPush(teamId: string) {
   }
 }
 
-export async function checkPushSubscription(teamId: string) {
-  const { data, error } = await supabase
-    .from('push_subscriptions')
-    .select('*')
-    .eq('team_id', teamId)
-    .single();
-  
-  if (error && error.code !== 'PGRST116') {
-    console.error('Error checking push subscription:', error);
+export async function checkPushSubscription() {
+  try {
+    const registration = await navigator.serviceWorker.ready;
+    const subscription = await registration.pushManager.getSubscription();
+    
+    if (!subscription) return false;
+
+    const { data, error } = await supabase
+      .from('push_subscriptions')
+      .select('*')
+      .eq('endpoint', subscription.endpoint)
+      .single();
+    
+    if (error && error.code !== 'PGRST116') {
+      console.error('Error checking push subscription:', error);
+    }
+    
+    return !!data;
+  } catch (error) {
+    console.error('Error in checkPushSubscription:', error);
+    return false;
   }
-  
-  return !!data;
 }
 
 export async function sendPushNotification(gameId: string, type: 'game_start' | 'game_end' | 'score_published' | 'bonus_release', details?: any) {

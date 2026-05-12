@@ -63,20 +63,39 @@ describe('Notification Library', () => {
       const upsertSpy = vi.fn().mockResolvedValue({ error: null });
       (supabase.from as any).mockReturnValue({ upsert: upsertSpy });
 
+      // Mock subscription with endpoint
+      vi.stubGlobal('navigator', {
+        serviceWorker: {
+          ready: Promise.resolve({
+            pushManager: {
+              getSubscription: vi.fn().mockResolvedValue({
+                endpoint: 'test-endpoint',
+                toJSON: () => ({ endpoint: 'test-endpoint' })
+              })
+            }
+          })
+        }
+      });
+
       const result = await subscribeUserToPush(teamId);
       
       expect(result).toBe(true);
       expect(upsertSpy).toHaveBeenCalledWith(
-        expect.objectContaining({ team_id: teamId }),
-        expect.objectContaining({ onConflict: 'team_id' })
+        expect.objectContaining({ 
+          team_id: teamId,
+          endpoint: 'test-endpoint'
+        }),
+        expect.objectContaining({ onConflict: 'endpoint' })
       );
     });
   });
 
   describe('unsubscribeUserFromPush', () => {
     it('unsubscribes and deletes from Supabase', async () => {
-      const teamId = 'team-123';
-      const mockSubscription = { unsubscribe: vi.fn().mockResolvedValue(true) };
+      const mockSubscription = { 
+        endpoint: 'test-endpoint',
+        unsubscribe: vi.fn().mockResolvedValue(true) 
+      };
       
       // Setup mock service worker with an existing subscription
       vi.stubGlobal('navigator', {
@@ -92,11 +111,53 @@ describe('Notification Library', () => {
       const deleteSpy = vi.fn().mockReturnValue({ eq: vi.fn().mockResolvedValue({ error: null }) });
       (supabase.from as any).mockReturnValue({ delete: deleteSpy });
 
-      const result = await unsubscribeUserFromPush(teamId);
+      const result = await unsubscribeUserFromPush();
       
       expect(result).toBe(true);
       expect(mockSubscription.unsubscribe).toHaveBeenCalled();
       expect(deleteSpy).toHaveBeenCalled();
+    });
+  });
+
+  describe('checkPushSubscription', () => {
+    it('returns true if subscription exists in Supabase', async () => {
+      vi.stubGlobal('navigator', {
+        serviceWorker: {
+          ready: Promise.resolve({
+            pushManager: {
+              getSubscription: vi.fn().mockResolvedValue({
+                endpoint: 'test-endpoint'
+              })
+            }
+          })
+        }
+      });
+
+      const singleSpy = vi.fn().mockResolvedValue({ data: { id: '1' }, error: null });
+      (supabase.from as any).mockReturnValue({ 
+        select: vi.fn().mockReturnThis(),
+        eq: vi.fn().mockReturnThis(),
+        single: singleSpy 
+      });
+
+      const result = await checkPushSubscription();
+      expect(result).toBe(true);
+      expect(singleSpy).toHaveBeenCalled();
+    });
+
+    it('returns false if no browser subscription exists', async () => {
+      vi.stubGlobal('navigator', {
+        serviceWorker: {
+          ready: Promise.resolve({
+            pushManager: {
+              getSubscription: vi.fn().mockResolvedValue(null)
+            }
+          })
+        }
+      });
+
+      const result = await checkPushSubscription();
+      expect(result).toBe(false);
     });
   });
 
